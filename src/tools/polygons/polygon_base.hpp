@@ -15,9 +15,9 @@ namespace aegean {
                 PolygonBase() {}
 
               public:
-                virtual double min_distace(Point p) { assert(false); }
-                virtual double max_distace(Point p) { assert(false); }
-                virtual bool in_polygon(Point p) { assert(false); }
+                virtual double min_distace(const Point& p) { assert(false); }
+                virtual double max_distace(const Point& p) { assert(false); }
+                virtual bool in_polygon(const Point& p) { assert(false); }
             };
         } // namespace polygons
     } // namespace tools

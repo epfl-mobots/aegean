@@ -29,9 +29,41 @@ namespace aegean {
                 {
                 }
 
-                double min_distace(Point p) override {}
-                double max_distace(Point p) override {}
-                bool in_polygon(Point p) override {}
+                double min_distace(const Point& p) override
+                {
+                    return std::min(distance_to_inner_wall(p), distance_to_outer_wall(p));
+                }
+
+                double max_distace(const Point& p) override
+                {
+                    return std::max(distance_to_inner_wall(p), distance_to_outer_wall(p));
+                }
+
+                bool in_polygon(const Point& p) override
+                {
+                    if (distance_to_outer_wall(p) < 0)
+                        return false;
+                    else if (distance_to_inner_wall(p) < 0)
+                        return false;
+                    else
+                        return true;
+                }
+
+                double distance_to_inner_wall(const Point& p)
+                {
+                    Eigen::Vector2d pt(2);
+                    pt(0) = p.x() - _center.x();
+                    pt(1) = p.y() - _center.y();
+                    return pt.norm() - _inner_r;
+                }
+
+                double distance_to_outer_wall(const Point& p)
+                {
+                    Eigen::Vector2d pt(2);
+                    pt(0) = p.x() - _center.x();
+                    pt(1) = p.y() - _center.y();
+                    return _outer_r - pt.norm();
+                }
 
                 double inner_radius() const { return _inner_r; }
                 double outer_radius() const { return _outer_r; }

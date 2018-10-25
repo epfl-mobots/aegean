@@ -9,9 +9,6 @@ namespace aegean {
         namespace reconstruction {
             struct ReconstructionBase {
                 virtual void operator()(Eigen::MatrixXd& matrix) { assert(false); }
-
-                uint valid_forward(const Eigen::MatrixXd& matrix) const {}
-                uint valid_backward(const Eigen::MatrixXd& matrix) const {}
             };
 
         } // namespace reconstruction

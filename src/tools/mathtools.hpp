@@ -8,6 +8,12 @@
 namespace aegean {
     namespace tools {
 
+        template <typename T>
+        int sgn(T val)
+        {
+            return (T(0) < val) - (val < T(0));
+        }
+
         void removeRow(Eigen::MatrixXd& matrix, uint row_idx)
         {
             uint num_rows = matrix.rows() - 1;

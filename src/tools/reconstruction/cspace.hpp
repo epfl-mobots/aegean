@@ -3,6 +3,7 @@
 
 #include "reconstruction_base.hpp"
 #include <tools/polygons/circular_corridor.hpp>
+#include <tools/mathtools.hpp>
 
 #include <Eigen/Core>
 #include <vector>
@@ -13,13 +14,6 @@
 #include <iostream>
 
 namespace aegean {
-
-    template <typename T>
-    int sgn(T val)
-    {
-        return (T(0) < val) - (val < T(0));
-    }
-
     namespace tools {
         namespace reconstruction {
 
@@ -74,7 +68,8 @@ namespace aegean {
                                 rows_wo_nans.push_back(j);
                         }
 
-                        assert(matrix.rows() == rows_wo_nans.size() && "Reconstructing went wrong");
+                        assert((matrix.rows() == static_cast<uint>(rows_wo_nans.size()))
+                               && "Reconstructing went wrong");
                         matrix.col(i) = individual.col(0);
                         matrix.col(i + 1) = individual.col(1);
                     }

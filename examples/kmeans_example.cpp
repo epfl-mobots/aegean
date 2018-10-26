@@ -22,16 +22,17 @@ struct Params {
 
 int main()
 {
-    std::vector<uint> prob_cols = {2, 5, 8, 11, 14, 17};
     Eigen::MatrixXd data;
     Archive dl;
     dl.load<Eigen::MatrixXd>(
         data,
         "/home/vpapaspy/Workspaces/mobots_ws/Research/Ethograms/aegean/experiments/zebrafish/"
-        "data/fish_only/3_fish_only/trajectories.txt",
+        "data/fish_only/7_fish_only/trajectories.txt",
         1);
-    removeCols(data, prob_cols);
-    uint start_idx = data.rows() - 27855;
+    std::vector<uint> prob_cols = {2, 5, 8, 11, 14, 17};
+    removeCols(data, prob_cols); // remove idTracker probability cols
+    uint start_idx
+        = data.rows() - 27855; // bring all trajectories to the same length for comparison
     Eigen::MatrixXd positions = data.block(start_idx, 0, 27855, data.cols());
 
     // using distance_func_t = aegean::defaults::distance_functions::euclidean;
@@ -44,8 +45,6 @@ int main()
 
     ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>> edf(positions, 15, 3,
                                                                              1.13 / 1024, 855);
-
-    std::cout << edf.positions() << std::endl;
 
     return 0;
 }

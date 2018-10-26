@@ -10,31 +10,39 @@
 #include <boost/fusion/include/vector.hpp>
 #include <boost/parameter.hpp>
 
+#include <memory>
+
 namespace aegean {
 
+    using ResultVecPtr = std::shared_ptr<std::vector<Eigen::MatrixXd>>;
+
     struct ConstructFeatures {
-        ConstructFeatures(const Eigen::MatrixXd& trajectories, const float timestep,
-                          const uint skip_rows)
-            : _trajectories(trajectories), _timestep(timestep), _skip_rows(skip_rows)
+        ConstructFeatures(const Eigen::MatrixXd& trajectories, ResultVecPtr results,
+                          const float timestep, const uint skip_rows)
+            : _trajectories(trajectories),
+              _results(results),
+              _timestep(timestep),
+              _skip_rows(skip_rows)
         {
+            count = 0;
         }
 
         template <typename T>
         void operator()(T& x)
         {
             if (x.feature_name() != "no_feature") {
+                ++count;
                 x(_trajectories, _timestep);
-                _results.push_back(
+                _results->push_back(
                     x.get().block(_skip_rows, 0, x.get().rows() - _skip_rows, x.get().cols()));
             }
         }
 
-        std::vector<Eigen::MatrixXd> results() { return _results; }
-
+        int count;
         Eigen::MatrixXd _trajectories;
+        ResultVecPtr _results;
         const float _timestep;
         const uint _skip_rows;
-        std::vector<Eigen::MatrixXd> _results;
     };
 
     namespace tools {
@@ -69,10 +77,11 @@ namespace aegean {
                 : _positions(positions),
                   _fps(fps),
                   _centroid_samples(centroid_samples),
-                  _timestep(_centroid_samples / _fps),
+                  _timestep(static_cast<float>(_centroid_samples) / static_cast<float>(_fps)),
                   _scale(scale),
                   _skip_rows(skip_rows / _centroid_samples),
-                  _num_individuals(_positions.cols() / 2)
+                  _num_individuals(_positions.cols() / 2),
+                  _feature_res(std::make_shared<std::vector<Eigen::MatrixXd>>())
             {
                 // scale position matrix (e.g., this can be used to convert from pixels to cm)
                 _positions *= scale;
@@ -85,9 +94,8 @@ namespace aegean {
                 _reconstruction_method(_positions);
 
                 // compute the features
-                ConstructFeatures cf(_positions, _timestep, _skip_rows);
+                ConstructFeatures cf(_positions, _feature_res, _timestep, _skip_rows);
                 boost::fusion::for_each(_features, cf);
-                _feature_res = cf.results();
 
                 // use the extra rows to compute the features and then remove them
                 _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows,
@@ -141,7 +149,7 @@ namespace aegean {
 
             ReconstructionMethod _reconstruction_method;
             Features _features;
-            std::vector<Eigen::MatrixXd> _feature_res;
+            ResultVecPtr _feature_res;
         };
     } // namespace tools
 } // namespace aegean

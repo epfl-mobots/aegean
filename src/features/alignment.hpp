@@ -6,8 +6,6 @@
 #include <tools/random_generator.hpp>
 #include <cmath>
 
-#include <iostream>
-
 namespace aegean {
     namespace features {
 
@@ -24,7 +22,7 @@ namespace aegean {
                     for (uint j = 0; j < matrix.cols() / 2; ++j) {
                         double ind_avg
                             = _bearing.row(i)
-                                  .unaryExpr([&](double val) { return abs(val - _bearing(i, j)); })
+                                  .unaryExpr([&](double val) { return fabs(val - _bearing(i, j)); })
                                   .sum()
                             / (_bearing.cols() - 1);
                         _alignment(i) += ind_avg;

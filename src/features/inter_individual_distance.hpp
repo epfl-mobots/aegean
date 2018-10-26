@@ -23,7 +23,7 @@ namespace aegean {
 
                     double theta1 = std::fmod(std::atan2(pt1(1), pt1(0)) * 180 / M_PI + 360, 360);
                     double theta2 = std::fmod(std::atan2(pt2(1), pt2(0)) * 180 / M_PI + 360, 360);
-                    double theta = abs(theta1 - theta2);
+                    double theta = fabs(theta1 - theta2);
                     return (theta > 180) ? 360 - theta : theta;
                 }
 

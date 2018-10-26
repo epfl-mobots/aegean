@@ -6,8 +6,6 @@
 #include <tools/random_generator.hpp>
 #include <cmath>
 
-#include <iostream>
-
 namespace aegean {
     namespace features {
 

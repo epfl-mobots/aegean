@@ -1,5 +1,5 @@
 #include <tools/archive.hpp>
-#include <tools/id_tracker_data.hpp>
+#include <tools/experiment_data_frame.hpp>
 #include <tools/mathtools.hpp>
 
 #include <tools/reconstruction/cspace.hpp>
@@ -31,8 +31,8 @@ int main()
     uint start_idx = data.rows() - 27855;
     Eigen::MatrixXd positions = data.block(start_idx, 0, 27855, data.cols());
 
-    IdTrackerData<reconstruction::CSpace<polygons::CircularCorridor<Params>>> itd(positions, 15, 3,
-                                                                                  1.13 / 1024, 855);
+    ExperimentDataFrame<reconstruction::CSpace<polygons::CircularCorridor<Params>>> itd(
+        positions, 15, 3, 1.13 / 1024, 855);
     // std::cout << itd.positions().rows() << std::endl;
 
     return 0;

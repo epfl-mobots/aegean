@@ -1,5 +1,5 @@
-#ifndef ID_TRACKER_DATA_HPP
-#define ID_TRACKER_DATA_HPP
+#ifndef EXPERIMENT_DATA_FRAME_HPP
+#define EXPERIMENT_DATA_FRAME_HPP
 
 #include <Eigen/Core>
 #include <tools/reconstruction/no_reconstruction.hpp>
@@ -8,12 +8,12 @@ namespace aegean {
     namespace tools {
 
         template <typename ReconstructionMethod = reconstruction::NoReconstruction>
-        class IdTrackerData {
+        class ExperimentDataFrame {
 
           public:
-            IdTrackerData(const Eigen::MatrixXd& positions, const uint fps = 15,
-                          const uint centroid_samples = 0, const float scale = 1.0f,
-                          const uint skip_rows = 0)
+            ExperimentDataFrame(const Eigen::MatrixXd& positions, const uint fps = 15,
+                                const uint centroid_samples = 0, const float scale = 1.0f,
+                                const uint skip_rows = 0)
                 : _positions(positions),
                   _fps(fps),
                   _centroid_samples(centroid_samples),
@@ -32,6 +32,7 @@ namespace aegean {
             uint centroid_samples() const { return _centroid_samples; }
             float scale() const { return _scale; }
             uint skip_rows() const { return _skip_rows; }
+            uint num_individuals() const { return _num_individuals; }
 
           protected:
             void _filter_positions()

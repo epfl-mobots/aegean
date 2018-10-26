@@ -62,6 +62,7 @@ namespace aegean {
                                 rows_wo_nans[rows_wo_nans.size() - 1], false);
                         }
 
+                        // do a final check to validate that all cells have been reconstructed
                         rows_wo_nans.clear();
                         for (uint j = 0; j < individual.rows(); ++j) {
                             if (individual.row(j).array().isNaN().count() == 0)

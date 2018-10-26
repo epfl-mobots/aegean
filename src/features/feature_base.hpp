@@ -9,7 +9,10 @@ namespace aegean {
 
         class FeatureBase {
           public:
-            virtual void operator()(const Eigen::MatrixXd& matrix) { assert(false); }
+            virtual void operator()(const Eigen::MatrixXd& matrix, const float timestep)
+            {
+                assert(false);
+            }
             virtual Eigen::MatrixXd get() { assert(false); }
             virtual const std::string& feature_name() { assert(false); }
         };

@@ -48,6 +48,23 @@ namespace aegean {
                 removeRow(matrix, idcs[i] - i);
         }
 
+        template <typename M>
+        M rollMatrix(const M& matrix, int offset)
+        {
+            if (!offset)
+                return matrix;
+            M rolled(matrix.rows(), matrix.cols());
+
+            if (offset > 0)
+                offset = offset % matrix.rows();
+            else
+                offset = matrix.rows() - (-offset % matrix.rows());
+            int rest = matrix.rows() - offset;
+            rolled.topRows(offset) = matrix.bottomRows(offset);
+            rolled.bottomRows(rest) = matrix.topRows(rest);
+            return rolled;
+        }
+
     } // namespace tools
 } // namespace aegean
 

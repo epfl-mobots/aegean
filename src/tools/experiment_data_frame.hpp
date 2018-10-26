@@ -13,13 +13,16 @@
 namespace aegean {
 
     struct ConstructFeatures {
-        ConstructFeatures(const Eigen::MatrixXd& trajectories) : _trajectories(trajectories) {}
+        ConstructFeatures(const Eigen::MatrixXd& trajectories, const float timestep)
+            : _trajectories(trajectories), _timestep(timestep)
+        {
+        }
 
         template <typename T>
         void operator()(T& x)
         {
             if (x.feature_name() != "no_feature") {
-                x(_trajectories);
+                x(_trajectories, _timestep);
                 _results.push_back(x.get());
             }
         }
@@ -27,17 +30,18 @@ namespace aegean {
         std::vector<Eigen::MatrixXd> results() { return _results; }
 
         Eigen::MatrixXd _trajectories;
+        const float _timestep;
         std::vector<Eigen::MatrixXd> _results;
     };
 
     namespace tools {
 
         BOOST_PARAMETER_TEMPLATE_KEYWORD(reconfun)
-        BOOST_PARAMETER_TEMPLATE_KEYWORD(features)
+        BOOST_PARAMETER_TEMPLATE_KEYWORD(featset)
 
         using edf_signature
             = boost::parameter::parameters<boost::parameter::optional<tag::reconfun>,
-                                           boost::parameter::optional<tag::features>>;
+                                           boost::parameter::optional<tag::featset>>;
 
         template <class A1 = boost::parameter::void_, class A2 = boost::parameter::void_>
         class ExperimentDataFrame {
@@ -52,7 +56,7 @@ namespace aegean {
                 typename boost::parameter::binding<args, tag::reconfun,
                                                    typename defaults::reconstruction_t>::type;
             using Features =
-                typename boost::parameter::binding<args, tag::features,
+                typename boost::parameter::binding<args, tag::featset,
                                                    typename defaults::features_t>::type;
 
           public:
@@ -62,6 +66,7 @@ namespace aegean {
                 : _positions(positions),
                   _fps(fps),
                   _centroid_samples(centroid_samples),
+                  _timestep(_centroid_samples / _fps),
                   _scale(scale),
                   _skip_rows(skip_rows),
                   _num_individuals(_positions.cols() / 2)
@@ -77,7 +82,7 @@ namespace aegean {
                 _reconstruction_method(_positions);
 
                 // compute the features
-                ConstructFeatures cf(_positions);
+                ConstructFeatures cf(_positions, _timestep);
                 boost::fusion::for_each(_features, cf);
                 _feature_res = cf.results();
             }
@@ -122,6 +127,7 @@ namespace aegean {
             Eigen::MatrixXd _positions;
             const uint _fps;
             const uint _centroid_samples;
+            const float _timestep;
             const float _scale;
             const uint _skip_rows;
             const uint _num_individuals;

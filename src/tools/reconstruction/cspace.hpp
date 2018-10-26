@@ -11,8 +11,6 @@
 #include <cmath>
 #include <tuple>
 
-#include <iostream>
-
 namespace aegean {
     namespace tools {
         namespace reconstruction {

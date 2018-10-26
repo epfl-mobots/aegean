@@ -10,7 +10,7 @@ namespace aegean {
           public:
             NoFeature() : _feature_name("no_feature") {}
 
-            void operator()(const Eigen::MatrixXd& matrix) override {}
+            void operator()(const Eigen::MatrixXd& matrix, const float timestep) override {}
 
             Eigen::MatrixXd get() override { return Eigen::MatrixXd(); }
 

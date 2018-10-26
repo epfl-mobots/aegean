@@ -31,8 +31,10 @@ int main()
     uint start_idx = data.rows() - 27855;
     Eigen::MatrixXd positions = data.block(start_idx, 0, 27855, data.cols());
 
-    ExperimentDataFrame<reconstruction::CSpace<polygons::CircularCorridor<Params>>> itd(
-        positions, 15, 3, 1.13 / 1024, 855);
+    using reconstruction_t = reconstruction::CSpace<polygons::CircularCorridor<Params>>;
+    using features_t = boost::fusion::vector<>;
+
+    ExperimentDataFrame<reconfun<reconstruction_t>> edf(positions, 15, 3, 1.13 / 1024, 855);
     // std::cout << itd.positions().rows() << std::endl;
 
     return 0;

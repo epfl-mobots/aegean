@@ -3,12 +3,57 @@
 
 #include <Eigen/Core>
 #include <tools/reconstruction/no_reconstruction.hpp>
+#include <features/no_feature.hpp>
+
+#include <boost/fusion/include/accumulate.hpp>
+#include <boost/fusion/include/for_each.hpp>
+#include <boost/fusion/include/vector.hpp>
+#include <boost/parameter.hpp>
 
 namespace aegean {
+
+    struct ConstructFeatures {
+        ConstructFeatures(const Eigen::MatrixXd& trajectories) : _trajectories(trajectories) {}
+
+        template <typename T>
+        void operator()(T& x)
+        {
+            if (x.feature_name() != "no_feature") {
+                x(_trajectories);
+                _results.push_back(x.get());
+            }
+        }
+
+        std::vector<Eigen::MatrixXd> results() { return _results; }
+
+        Eigen::MatrixXd _trajectories;
+        std::vector<Eigen::MatrixXd> _results;
+    };
+
     namespace tools {
 
-        template <typename ReconstructionMethod = reconstruction::NoReconstruction>
+        BOOST_PARAMETER_TEMPLATE_KEYWORD(reconfun)
+        BOOST_PARAMETER_TEMPLATE_KEYWORD(features)
+
+        using edf_signature
+            = boost::parameter::parameters<boost::parameter::optional<tag::reconfun>,
+                                           boost::parameter::optional<tag::features>>;
+
+        template <class A1 = boost::parameter::void_, class A2 = boost::parameter::void_>
         class ExperimentDataFrame {
+
+            struct defaults {
+                using reconstruction_t = reconstruction::NoReconstruction;
+                using features_t = boost::fusion::vector<aegean::features::NoFeature>;
+            };
+
+            using args = typename edf_signature::bind<A1, A2>::type;
+            using ReconstructionMethod =
+                typename boost::parameter::binding<args, tag::reconfun,
+                                                   typename defaults::reconstruction_t>::type;
+            using Features =
+                typename boost::parameter::binding<args, tag::features,
+                                                   typename defaults::features_t>::type;
 
           public:
             ExperimentDataFrame(const Eigen::MatrixXd& positions, const uint fps = 15,
@@ -21,10 +66,20 @@ namespace aegean {
                   _skip_rows(skip_rows),
                   _num_individuals(_positions.cols() / 2)
             {
+                // scale position matrix (e.g., this can be used to convert from pixels to cm)
                 _positions *= scale;
+
+                // filter positions by calculating centroidal positions if necessary
                 if (_centroid_samples > 1)
                     _filter_positions();
+
+                // reconstruct missing (NaN) values
                 _reconstruction_method(_positions);
+
+                // compute the features
+                ConstructFeatures cf(_positions);
+                boost::fusion::for_each(_features, cf);
+                _feature_res = cf.results();
             }
 
             const Eigen::MatrixXd& positions() const { return _positions; }
@@ -72,6 +127,8 @@ namespace aegean {
             const uint _num_individuals;
 
             ReconstructionMethod _reconstruction_method;
+            Features _features;
+            std::vector<Eigen::MatrixXd> _feature_res;
         };
     } // namespace tools
 } // namespace aegean

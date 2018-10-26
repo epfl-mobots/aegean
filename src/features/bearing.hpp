@@ -13,7 +13,7 @@ namespace aegean {
 
         class Bearing : public FeatureBase {
           public:
-            Bearing() : _feature_name("bearing") {}
+            Bearing() : _feature_name("Bearing") {}
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {
@@ -40,9 +40,11 @@ namespace aegean {
 
             const std::string& feature_name() override { return _feature_name; }
 
+          protected:
+            Eigen::MatrixXd _bearing;
+
           private:
             std::string _feature_name;
-            Eigen::MatrixXd _bearing;
         };
 
     } // namespace features

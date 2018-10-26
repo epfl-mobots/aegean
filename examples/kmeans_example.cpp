@@ -5,7 +5,7 @@
 #include <tools/reconstruction/cspace.hpp>
 #include <tools/polygons/circular_corridor.hpp>
 
-#include <features/bearing.hpp>
+#include <features/alignment.hpp>
 
 #include <iostream>
 #include <vector>
@@ -34,7 +34,7 @@ int main()
     Eigen::MatrixXd positions = data.block(start_idx, 0, 27855, data.cols());
 
     using reconstruction_t = reconstruction::CSpace<polygons::CircularCorridor<Params>>;
-    using features_t = boost::fusion::vector<aegean::features::Bearing>;
+    using features_t = boost::fusion::vector<aegean::features::Alignment>;
 
     ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>> edf(positions, 15, 3,
                                                                              1.13 / 1024, 855);

@@ -6,6 +6,7 @@
 #include <tools/polygons/circular_corridor.hpp>
 
 #include <features/alignment.hpp>
+#include <features/inter_individual_distance.hpp>
 
 #include <iostream>
 #include <vector>
@@ -15,7 +16,7 @@ using namespace aegean;
 using namespace tools;
 
 struct Params {
-    struct CircularCorridor : public polygons::defaults::CircularCorridor {
+    struct CircularCorridor : public defaults::CircularCorridor {
     };
 };
 
@@ -27,18 +28,24 @@ int main()
     dl.load<Eigen::MatrixXd>(
         data,
         "/home/vpapaspy/Workspaces/mobots_ws/Research/Ethograms/aegean/experiments/zebrafish/"
-        "data/fish_only/4_fish_only/trajectories.txt",
+        "data/fish_only/3_fish_only/trajectories.txt",
         1);
     removeCols(data, prob_cols);
     uint start_idx = data.rows() - 27855;
     Eigen::MatrixXd positions = data.block(start_idx, 0, 27855, data.cols());
 
+    // using distance_func_t = aegean::defaults::distance_functions::euclidean;
+    using distance_func_t
+        = aegean::defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
     using reconstruction_t = reconstruction::CSpace<polygons::CircularCorridor<Params>>;
-    using features_t = boost::fusion::vector<aegean::features::Alignment>;
+    using features_t
+        = boost::fusion::vector<aegean::features::InterIndividualDistance<distance_func_t>,
+                                aegean::features::Alignment>;
 
     ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>> edf(positions, 15, 3,
                                                                              1.13 / 1024, 855);
-    // std::cout << itd.positions().rows() << std::endl;
+
+    std::cout << edf.positions() << std::endl;
 
     return 0;
 }

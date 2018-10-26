@@ -4,17 +4,17 @@
 #include "polygon_base.hpp"
 
 namespace aegean {
+    namespace defaults {
+        struct CircularCorridor {
+            static constexpr double inner_radius = 0.19;
+            static constexpr double outer_radius = 0.29;
+            static constexpr double center_x = 0.58;
+            static constexpr double center_y = 0.54;
+        };
+    } // namespace defaults
+
     namespace tools {
         namespace polygons {
-
-            namespace defaults {
-                struct CircularCorridor {
-                    static constexpr double inner_radius = 0.19;
-                    static constexpr double outer_radius = 0.29;
-                    static constexpr double center_x = 0.58;
-                    static constexpr double center_y = 0.54;
-                };
-            } // namespace defaults
 
             using namespace primitives;
 

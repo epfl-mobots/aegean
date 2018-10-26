@@ -13,8 +13,9 @@
 namespace aegean {
 
     struct ConstructFeatures {
-        ConstructFeatures(const Eigen::MatrixXd& trajectories, const float timestep)
-            : _trajectories(trajectories), _timestep(timestep)
+        ConstructFeatures(const Eigen::MatrixXd& trajectories, const float timestep,
+                          const uint skip_rows)
+            : _trajectories(trajectories), _timestep(timestep), _skip_rows(skip_rows)
         {
         }
 
@@ -23,7 +24,8 @@ namespace aegean {
         {
             if (x.feature_name() != "no_feature") {
                 x(_trajectories, _timestep);
-                _results.push_back(x.get());
+                _results.push_back(
+                    x.get().block(_skip_rows, 0, x.get().rows() - _skip_rows, x.get().cols()));
             }
         }
 
@@ -31,6 +33,7 @@ namespace aegean {
 
         Eigen::MatrixXd _trajectories;
         const float _timestep;
+        const uint _skip_rows;
         std::vector<Eigen::MatrixXd> _results;
     };
 
@@ -68,7 +71,7 @@ namespace aegean {
                   _centroid_samples(centroid_samples),
                   _timestep(_centroid_samples / _fps),
                   _scale(scale),
-                  _skip_rows(skip_rows),
+                  _skip_rows(skip_rows / _centroid_samples),
                   _num_individuals(_positions.cols() / 2)
             {
                 // scale position matrix (e.g., this can be used to convert from pixels to cm)
@@ -82,9 +85,13 @@ namespace aegean {
                 _reconstruction_method(_positions);
 
                 // compute the features
-                ConstructFeatures cf(_positions, _timestep);
+                ConstructFeatures cf(_positions, _timestep, _skip_rows);
                 boost::fusion::for_each(_features, cf);
                 _feature_res = cf.results();
+
+                // use the extra rows to compute the features and then remove them
+                _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows,
+                                              _positions.cols());
             }
 
             const Eigen::MatrixXd& positions() const { return _positions; }

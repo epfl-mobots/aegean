@@ -1,7 +1,6 @@
 #ifndef AEGEAN_CLUSTERING_KMEANS_HPP
 #define AEGEAN_CLUSTERING_KMEANS_HPP
 
-#include <map>
 #include <vector>
 
 #include <Eigen/Core>
@@ -9,55 +8,75 @@
 // Quick hack for definition of 'I' in <complex.h>
 #undef I
 
-#include <limbo/tools/random_generator.hpp>
+#include <tools/random_generator.hpp>
+
+#include <iostream>
 
 namespace aegean {
     namespace clustering {
-        /// Cluster the data (NxD) in K clusters
-        /// returns a vector with the clusters (NxD)
-        std::vector<Eigen::MatrixXd> kmeans(const Eigen::MatrixXd& data, int K, int max_iter = 100)
-        {
-            static thread_local tools::rgen_int_t rgen(0, data.rows() - 1);
+        class KMeans {
+          public:
+            KMeans() {}
 
-            Eigen::MatrixXd centroids = Eigen::MatrixXd::Zero(K, data.cols());
-            // random points as centroids in the beginning
-            for (int i = 0; i < K; i++) {
-                centroids.row(i) = data.row(rgen.rand());
-            }
+            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, int K, int max_iter = 100)
+            {
+                static thread_local limbo::tools::rgen_int_t rgen(0, data.rows() - 1);
 
-            std::vector<Eigen::MatrixXd> clusters;
+                _centroids = Eigen::MatrixXd::Zero(K, data.cols());
+                _labels = Eigen::VectorXd::Ones(data.rows()) * -1;
 
-            for (int n = 0; n < max_iter; n++) {
-                // assign points to cluster
-                clusters.clear();
-                clusters.resize(K);
+                // random points as centroids in the beginning
+                for (int i = 0; i < K; i++) {
+                    _centroids.row(i) = data.row(rgen.rand());
+                }
 
-                for (int i = 0; i < data.rows(); i++) {
-                    double min = std::numeric_limits<double>::max();
-                    int min_k = -1;
-                    for (int k = 0; k < K; k++) {
-                        double dist = (centroids.row(k) - data.row(i)).squaredNorm();
-                        if (dist < min) {
-                            min = dist;
-                            min_k = k;
+                for (int n = 0; n < max_iter; n++) {
+                    // assign points to cluster
+                    _clusters.clear();
+                    _clusters.resize(K);
+                    _inertia = 0;
+
+                    for (int i = 0; i < data.rows(); i++) {
+                        double min = std::numeric_limits<double>::max();
+                        int min_k = -1;
+                        for (int k = 0; k < K; k++) {
+                            double dist = (_centroids.row(k) - data.row(i)).squaredNorm();
+                            if (dist < min) {
+                                min = dist;
+                                min_k = k;
+                                _labels(i) = min_k;
+                                _inertia += dist;
+                            }
                         }
+
+                        _clusters[min_k].conservativeResize(_clusters[min_k].rows() + 1,
+                                                            data.cols());
+                        _clusters[min_k].row(_clusters[min_k].rows() - 1) = data.row(i);
                     }
+                    _inertia /= data.rows();
 
-                    clusters[min_k].conservativeResize(clusters[min_k].rows() + 1, data.cols());
-                    clusters[min_k].row(clusters[min_k].rows() - 1) = data.row(i);
+                    // update centroids
+                    for (int k = 0; k < K; k++) {
+                        if (_clusters[k].size() == 0)
+                            _centroids.row(k) = Eigen::VectorXd::Zero(data.cols());
+                        else
+                            _centroids.row(k) = _clusters[k].colwise().mean();
+                    }
                 }
 
-                // update centroids
-                for (int k = 0; k < K; k++) {
-                    if (clusters[k].size() == 0)
-                        centroids.row(k) = Eigen::VectorXd::Zero(data.cols());
-                    else
-                        centroids.row(k) = clusters[k].colwise().mean();
-                }
+                return _clusters;
             }
 
-            return clusters;
-        }
+            const Eigen::MatrixXd& centroids() const { return _centroids; }
+            double inertia() const { return _inertia; }
+            const Eigen::VectorXd& labels() const { return _labels; }
+
+          protected:
+            Eigen::MatrixXd _centroids;
+            std::vector<Eigen::MatrixXd> _clusters;
+            Eigen::VectorXd _labels;
+            double _inertia;
+        };
     } // namespace clustering
 } // namespace aegean
 

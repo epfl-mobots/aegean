@@ -123,6 +123,17 @@ namespace aegean {
             uint skip_rows() const { return _skip_rows; }
             uint num_individuals() const { return _num_individuals; }
 
+            Eigen::MatrixXd get_feature_matrix() const
+            {
+                if (_feature_res->size() == 0)
+                    return Eigen::MatrixXd();
+
+                Eigen::MatrixXd feature_mat((*_feature_res)[0].rows(), _feature_res->size());
+                for (uint i = 0; i < _feature_res->size(); ++i)
+                    feature_mat.col(i) = (*_feature_res)[i];
+                return feature_mat;
+            }
+
             const ResultVecPtr features() { return _feature_res; }
             const NameVecPtr feature_names() { return _feature_names; }
 

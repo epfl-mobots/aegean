@@ -20,10 +20,12 @@ namespace aegean {
                 _alignment = Eigen::MatrixXd::Zero(matrix.rows(), 1);
                 for (uint i = 0; i < matrix.rows(); ++i) {
                     for (uint j = 0; j < matrix.cols() / 2; ++j) {
-                        double ind_avg
-                            = _bearing.row(i)
-                                  .unaryExpr([&](double val) { return fabs(val - _bearing(i, j)); })
-                                  .sum()
+                        double ind_avg = _bearing.row(i)
+                                             .unaryExpr([&](double val) {
+                                                 double theta = fabs(val - _bearing(i, j));
+                                                 return (theta > 180) ? 360 - theta : theta;
+                                             })
+                                             .sum()
                             / (_bearing.cols() - 1);
                         _alignment(i) += ind_avg;
                     }

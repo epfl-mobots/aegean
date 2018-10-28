@@ -2,15 +2,12 @@
 #define AEGEAN_CLUSTERING_KMEANS_HPP
 
 #include <vector>
-
 #include <Eigen/Core>
 
 // Quick hack for definition of 'I' in <complex.h>
 #undef I
 
 #include <tools/random_generator.hpp>
-
-#include <iostream>
 
 namespace aegean {
     namespace clustering {

@@ -1,5 +1,5 @@
-#ifndef POINT_HPP
-#define POINT_HPP
+#ifndef AEGEAN_TOOLS_PRIMITIVES_POINT_HPP
+#define AEGEAN_TOOLS_PRIMITIVES_POINT_HPP
 
 namespace aegean {
     namespace tools {

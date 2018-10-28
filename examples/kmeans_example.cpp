@@ -27,7 +27,7 @@ int main()
     dl.load<Eigen::MatrixXd>(
         data,
         "/home/vpapaspy/Workspaces/mobots_ws/Research/Ethograms/aegean/experiments/zebrafish/"
-        "data/fish_only/7_fish_only/trajectories.txt",
+        "data/fish_only/3_fish_only/trajectories.txt",
         1);
     std::vector<uint> prob_cols = {2, 5, 8, 11, 14, 17};
     removeCols(data, prob_cols); // remove idTracker probability cols

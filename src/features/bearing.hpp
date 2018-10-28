@@ -1,5 +1,5 @@
-#ifndef BEARING_HPP
-#define BEARING_HPP
+#ifndef AEGEAN_FEATURES_BEARING_HPP
+#define AEGEAN_FEATURES_BEARING_HPP
 
 #include <features/feature_base.hpp>
 #include <tools/mathtools.hpp>

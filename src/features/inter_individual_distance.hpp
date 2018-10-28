@@ -1,5 +1,5 @@
-#ifndef INTER_INDIVIDUAL_DISTANCE_HPP
-#define INTER_INDIVIDUAL_DISTANCE_HPP
+#ifndef AEGEAN_FEATURES_INTER_INDIVIDUAL_DISTANCE_HPP
+#define AEGEAN_FEATURES_INTER_INDIVIDUAL_DISTANCE_HPP
 
 #include <features/feature_base.hpp>
 #include <tools/mathtools.hpp>

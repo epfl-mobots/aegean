@@ -1,5 +1,5 @@
-#ifndef NO_FILTERING_HPP
-#define NO_FILTERING_HPP
+#ifndef AEGEAN_TOOLS_RECONSTRUCTION_NO_FILTERING_HPP
+#define AEGEAN_TOOLS_RECONSTRUCTION_NO_FILTERING_HPP
 
 #include "reconstruction_base.hpp"
 #include <Eigen/Core>

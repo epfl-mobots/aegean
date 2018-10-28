@@ -1,5 +1,5 @@
-#ifndef IGNORE_ROW_HPP
-#define IGNORE_ROW_HPP
+#ifndef AEGEAN_TOOLS_RECONSTRUCTION_IGNORE_ROW_HPP
+#define AEGEAN_TOOLS_RECONSTRUCTION_IGNORE_ROW_HPP
 
 #include "reconstruction_base.hpp"
 #include <Eigen/Core>

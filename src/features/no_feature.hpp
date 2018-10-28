@@ -1,5 +1,5 @@
-#ifndef NO_FEATURE_HPP
-#define NO_FEATURE_HPP
+#ifndef AEGEAN_FEATURES_NO_FEATURE_HPP
+#define AEGEAN_FEATURES_NO_FEATURE_HPP
 
 #include <features/feature_base.hpp>
 

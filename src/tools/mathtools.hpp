@@ -1,5 +1,5 @@
-#ifndef MATHTOOLS_HPP
-#define MATHTOOLS_HPP
+#ifndef AEGEAN_TOOLS_MATHTOOLS_HPP
+#define AEGEAN_TOOLS_MATHTOOLS_HPP
 
 #include <Eigen/Core>
 #include <vector>

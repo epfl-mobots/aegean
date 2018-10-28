@@ -1,5 +1,5 @@
-#ifndef ALIGNMENT_HPP
-#define ALIGNMENT_HPP
+#ifndef AEGEAN_FEATURES_ALIGNMENT_HPP
+#define AEGEAN_FEATURES_ALIGNMENT_HPP
 
 #include <features/bearing.hpp>
 #include <tools/mathtools.hpp>

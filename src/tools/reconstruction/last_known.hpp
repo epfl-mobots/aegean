@@ -1,5 +1,5 @@
-#ifndef LAST_KNOWN_HPP
-#define LAST_KNOWN_HPP
+#ifndef AEGEAN_TOOLS_RECONSTRUCTION_LAST_KNOWN_HPP
+#define AEGEAN_TOOLS_RECONSTRUCTION_LAST_KNOWN_HPP
 
 #include "reconstruction_base.hpp"
 #include <Eigen/Core>

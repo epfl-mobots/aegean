@@ -1,5 +1,5 @@
-#ifndef EXPERIMENT_DATA_FRAME_HPP
-#define EXPERIMENT_DATA_FRAME_HPP
+#ifndef AEGEAN_TOOLS_EXPERIMENT_DATA_FRAME_HPP
+#define AEGEAN_TOOLS_EXPERIMENT_DATA_FRAME_HPP
 
 #include <Eigen/Core>
 #include <tools/reconstruction/no_reconstruction.hpp>
@@ -15,6 +15,7 @@
 namespace aegean {
 
     using ResultVecPtr = std::shared_ptr<std::vector<Eigen::MatrixXd>>;
+    using NameVecPtr = std::shared_ptr<std::vector<std::string>>;
 
     struct ConstructFeatures {
         ConstructFeatures(const Eigen::MatrixXd& trajectories, ResultVecPtr results,
@@ -24,25 +25,34 @@ namespace aegean {
               _timestep(timestep),
               _skip_rows(skip_rows)
         {
-            count = 0;
         }
 
         template <typename T>
         void operator()(T& x)
         {
             if (x.feature_name() != "no_feature") {
-                ++count;
                 x(_trajectories, _timestep);
                 _results->push_back(
                     x.get().block(_skip_rows, 0, x.get().rows() - _skip_rows, x.get().cols()));
             }
         }
 
-        int count;
         Eigen::MatrixXd _trajectories;
         ResultVecPtr _results;
         const float _timestep;
         const uint _skip_rows;
+    };
+
+    struct FeatureNames {
+        FeatureNames(NameVecPtr names) : _names(names) {}
+
+        template <typename T>
+        void operator()(T& x)
+        {
+            _names->push_back(x.feature_name());
+        }
+
+        NameVecPtr _names;
     };
 
     namespace tools {
@@ -97,6 +107,10 @@ namespace aegean {
                 ConstructFeatures cf(_positions, _feature_res, _timestep, _skip_rows);
                 boost::fusion::for_each(_features, cf);
 
+                auto names = std::make_shared<std::vector<std::string>>();
+                FeatureNames fn(names);
+                boost::fusion::for_each(_features, fn);
+
                 // use the extra rows to compute the features and then remove them
                 _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows,
                                               _positions.cols());
@@ -108,6 +122,9 @@ namespace aegean {
             float scale() const { return _scale; }
             uint skip_rows() const { return _skip_rows; }
             uint num_individuals() const { return _num_individuals; }
+
+            const ResultVecPtr features() { return _feature_res; }
+            const NameVecPtr feature_names() { return _feature_names; }
 
           protected:
             void _filter_positions()
@@ -150,6 +167,7 @@ namespace aegean {
             ReconstructionMethod _reconstruction_method;
             Features _features;
             ResultVecPtr _feature_res;
+            NameVecPtr _feature_names;
         };
     } // namespace tools
 } // namespace aegean

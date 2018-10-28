@@ -1,5 +1,5 @@
-#ifndef POLYGON_BASE_HPP
-#define POLYGON_BASE_HPP
+#ifndef AEGEAN_TOOLS_POLYGONS_POLYGON_BASE_HPP
+#define AEGEAN_TOOLS_POLYGONS_POLYGON_BASE_HPP
 
 #include <tools/primitives/point.hpp>
 #include <cassert>

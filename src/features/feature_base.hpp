@@ -1,5 +1,5 @@
-#ifndef FEATURE_BASE_HPP
-#define FEATURE_BASE_HPP
+#ifndef AEGEAN_FEATURES_FEATURE_BASE_HPP
+#define AEGEAN_FEATURES_FEATURE_BASE_HPP
 
 #include <Eigen/Core>
 #include <string>

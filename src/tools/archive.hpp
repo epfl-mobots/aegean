@@ -1,5 +1,12 @@
-#ifndef ARCHIVE_HPP
-#define ARCHIVE_HPP
+/*
+This is based on the implementation of TextArchive from the limbo library:
+https://github.com/resibots/limbo/blob/master/src/limbo/serialize/text_archive.hpp
+*/
+
+#ifndef AEGEAN_TOOLS_ARCHIVE_HPP
+#define AEGEAN_TOOLS_ARCHIVE_HPP
+
+#include <Eigen/Core>
 
 #include <string>
 #include <vector>
@@ -14,7 +21,14 @@ namespace aegean {
     namespace tools {
         class Archive {
           public:
-            /// load an Eigen matrix (or vector)
+            Archive() : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "") {}
+
+            void save(const Eigen::MatrixXd& v, const std::string& filename) const
+            {
+                std::ofstream ofs(filename);
+                ofs << v.format(_fmt) << std::endl;
+            }
+
             template <typename M>
             void load(M& m, const std::string& filename, int skip = 0,
                       const char& delim = '\t') const
@@ -26,7 +40,6 @@ namespace aegean {
                         m(i, j) = values[i][j];
             }
 
-            /// load a 2D std vector
             std::vector<std::vector<double>> load(const std::string& filename, int skip = 0,
                                                   const char& delim = ' ') const
             {
@@ -53,6 +66,9 @@ namespace aegean {
                 assert(!v.empty() && "Empty file");
                 return v;
             }
+
+          protected:
+            Eigen::IOFormat _fmt;
         };
 
     } // namespace tools

@@ -1,5 +1,5 @@
-#ifndef CSPACE_HPP
-#define CSPACE_HPP
+#ifndef AEGEAN_TOOLS_RECONSTRUCTION_CSPACE_HPP
+#define AEGEAN_TOOLS_RECONSTRUCTION_CSPACE_HPP
 
 #include "reconstruction_base.hpp"
 #include <tools/polygons/circular_corridor.hpp>

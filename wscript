@@ -86,4 +86,11 @@ def build(bld):
                 uselib=libs,
                 target='kmeans_example')
 
+    bld.program(features='cxx',
+                install_path=None,
+                source='exp/zebra/zebra_etho_gen.cpp',
+                includes='./src',
+                uselib=libs,
+                target='zebra_etho_gen')
+
     bld.add_post_fun(summary)

@@ -1,0 +1,111 @@
+#include <ethogram/automated_ethogram.hpp>
+#include <clustering/kmeans.hpp>
+#include <clustering/opt/gap_statistic.hpp>
+#include <clustering/opt/no_opt.hpp>
+
+#include <tools/archive.hpp>
+#include <tools/experiment_data_frame.hpp>
+#include <tools/mathtools.hpp>
+#include <tools/polygons/circular_corridor.hpp>
+#include <tools/reconstruction/cspace.hpp>
+
+#include <features/alignment.hpp>
+#include <features/inter_individual_distance.hpp>
+
+#include <Eigen/Core>
+#include <iostream>
+#include <vector>
+
+using namespace aegean;
+using namespace clustering;
+using namespace tools;
+using namespace opt;
+using namespace ethogram;
+
+struct Params {
+    struct CircularCorridor : public defaults::CircularCorridor {
+    };
+};
+
+int main(int argc, char** argv)
+{
+    assert(argc == 2);
+    std::string path(argv[1]);
+
+    // list of files to process
+    std::vector<std::string> files = {
+        path + "/fish_only/2_fish_only/trajectories.txt",
+        path + "/fish_only/3_fish_only/trajectories.txt",
+        path + "/fish_only/4_fish_only/trajectories.txt",
+        path + "/fish_only/5_fish_only/trajectories.txt",
+        path + "/fish_only/6_fish_only/trajectories.txt",
+        path + "/fish_only/7_fish_only/trajectories.txt",
+        path + "/fish_only/8_fish_only/trajectories.txt",
+        path + "/fish_only/9_fish_only/trajectories.txt",
+        path + "/fish_only/10_fish_only/trajectories.txt",
+        path + "/fish_only/19_fish_only/trajectories.txt"
+
+    };
+
+    // setting the setup specifications (e.g., camera specs, setup scale, etc)
+    int initial_keep = 27855;
+    int process_frames = 27000;
+    int fps = 15;
+    int centroids = 3;
+    double scale = 1.13 / 1024;
+    uint window_in_seconds = 5 * 3;
+
+    using distance_func_t
+        = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+    using reconstruction_t = reconstruction::CSpace<polygons::CircularCorridor<Params>>;
+    using features_t = boost::fusion::vector<
+        features::InterIndividualDistance<distance_func_t>,
+        features::Alignment>;
+
+    Eigen::MatrixXd data;
+    std::vector<std::string> feature_names;
+    Archive dl;
+    for (const std::string f : files) {
+        // first we load the raw trajectories as generated in idTracker
+        Eigen::MatrixXd exp_data;
+        dl.load<Eigen::MatrixXd>(exp_data, f, 1);
+        std::vector<uint> prob_cols = {2, 5, 8, 11, 14, 17};
+        removeCols(exp_data, prob_cols); // remove idTracker probability cols
+        Eigen::MatrixXd positions = exp_data.block(exp_data.rows() - initial_keep, 0, initial_keep, exp_data.cols());
+
+        // we process the raw positions to extract useful features for every timestep
+        ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>>
+            edf(positions, fps, centroids, scale, initial_keep - process_frames);
+        Eigen::MatrixXd fm = edf.get_feature_matrix();
+
+        Eigen::MatrixXd avg_fm;
+        for (uint i = 0; i < fm.rows(); i += window_in_seconds) {
+            avg_fm.conservativeResize(avg_fm.rows() + 1, fm.cols());
+            avg_fm.row(avg_fm.rows() - 1) = fm.block(i, 0, window_in_seconds, fm.cols()).colwise().mean();
+        }
+
+        // append all features to one matrix to compute an complete ethogram
+        if (data.size()) {
+            Eigen::MatrixXd appendData(data.rows() + avg_fm.rows(), avg_fm.cols());
+            appendData << data, avg_fm;
+            data = appendData;
+        }
+        else {
+            data = avg_fm;
+            feature_names = edf.feature_names();
+        }
+    }
+
+    using clustering_t = KMeans<aegean::defaults::KMeansPlusPlus>;
+    using clustering_opt_t = GapStatistic<clustering_t, 2, 10>;
+    // using clustering_opt_t = NoOpt<3>;
+
+    AutomatedEthogram<
+        clusteringmethod<clustering_t>,
+        clusteringopt<clustering_opt_t>>
+        etho(data);
+    etho.compute();
+    std::cout << etho.num_behaviours() << std::endl;
+
+    return 0;
+}

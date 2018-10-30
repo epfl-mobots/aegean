@@ -1,5 +1,6 @@
 
 #include <clustering/kmeans.hpp>
+#include <clustering/opt/gap_statistic.hpp>
 
 #include <tools/archive.hpp>
 #include <tools/experiment_data_frame.hpp>
@@ -17,6 +18,7 @@
 using namespace aegean;
 using namespace clustering;
 using namespace tools;
+using namespace opt;
 
 struct Params {
     struct CircularCorridor : public defaults::CircularCorridor {
@@ -53,6 +55,10 @@ int main()
     KMeans<defaults::KMeansPlusPlus> km;
     std::vector<Eigen::MatrixXd> clusters = km.fit(fm, 3);
     std::cout << km.centroids() << std::endl;
+
+    GapStatistic<KMeans<defaults::KMeansPlusPlus>> gs;
+    uint k = gs.opt_k(fm, 2, 10);
+    std::cout << "opt k " << k << std::endl;
 
     return 0;
 }

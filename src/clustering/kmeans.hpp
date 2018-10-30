@@ -74,8 +74,8 @@ namespace aegean {
                     // compute the distances of every point to every centroid
                     // dist = [ ||data - centroid_1 ||^2, ..., ||data - centroid_n ||^2  ] -> NxK
                     Eigen::MatrixXd dist(data.rows(), centroids.rows());
-                    for (int i = 0; i < centroids.rows(); i++) {
-                        for (int j = 0; j < data.rows(); j++)
+                    for (int i = 0; i < centroids.rows(); ++i) {
+                        for (int j = 0; j < data.rows(); ++j)
                             dist(j, i) = (data.row(j) - centroids.row(i)).squaredNorm();
                     }
 
@@ -87,7 +87,7 @@ namespace aegean {
                     Eigen::MatrixXd probs = D / D.sum();
                     Eigen::MatrixXd cumprobs(probs.rows(), probs.cols());
                     cumprobs(0) = probs(0);
-                    for (int i = 1; i < cumprobs.rows(); i++) {
+                    for (int i = 1; i < cumprobs.rows(); ++i) {
                         cumprobs(i) = probs(i) + cumprobs(i - 1);
                     }
 
@@ -95,7 +95,7 @@ namespace aegean {
                     // in the previous step
                     int idx = -1;
                     double prob = rgend.rand();
-                    for (int i = 1; i < cumprobs.rows(); i++) {
+                    for (int i = 1; i < cumprobs.rows(); ++i) {
                         if (cumprobs(i) > prob) {
                             idx = i;
                             break;
@@ -117,7 +117,7 @@ namespace aegean {
             {
                 static thread_local limbo::tools::rgen_int_t rgen(0, 1);
                 Eigen::MatrixXd centroids = Eigen::MatrixXd::Zero(K, data.cols());
-                for (int i = 0; i < K; i++) {
+                for (int i = 0; i < K; ++i) {
                     centroids.row(i) = data.row(rgen.rand());
                 }
                 return centroids;
@@ -130,10 +130,8 @@ namespace aegean {
         template <typename InitFunc = defaults::KMeansPlusPlus>
         class KMeans {
         public:
-            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K,
-                const int num_init = 5, const int max_iter = 100)
+            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K, const int max_iter = 100)
             {
-
                 _centroids = InitFunc()(data, K);
                 Eigen::MatrixXd prev_centroids;
                 _labels = Eigen::VectorXi::Ones(data.rows()) * -1;
@@ -146,7 +144,7 @@ namespace aegean {
                     for (int i = 0; i < data.rows(); ++i) {
                         double min = std::numeric_limits<double>::max();
                         int min_k = -1;
-                        for (int k = 0; k < K; k++) {
+                        for (int k = 0; k < K; ++k) {
                             double dist = (_centroids.row(k) - data.row(i)).squaredNorm();
                             if (dist < min) {
                                 min = dist;

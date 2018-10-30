@@ -4,15 +4,15 @@
 #include <tools/archive.hpp>
 #include <tools/experiment_data_frame.hpp>
 #include <tools/mathtools.hpp>
-#include <tools/reconstruction/cspace.hpp>
 #include <tools/polygons/circular_corridor.hpp>
+#include <tools/reconstruction/cspace.hpp>
 
 #include <features/alignment.hpp>
 #include <features/inter_individual_distance.hpp>
 
+#include <Eigen/Core>
 #include <iostream>
 #include <vector>
-#include <Eigen/Core>
 
 using namespace aegean;
 using namespace clustering;
@@ -44,13 +44,13 @@ int main()
     using reconstruction_t = reconstruction::CSpace<polygons::CircularCorridor<Params>>;
     using features_t
         = boost::fusion::vector<aegean::features::InterIndividualDistance<distance_func_t>,
-                                aegean::features::Alignment>;
+            aegean::features::Alignment>;
 
     ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>> edf(positions, 15, 3,
-                                                                             1.13 / 1024, 855);
+        1.13 / 1024, 855);
 
     Eigen::MatrixXd fm = edf.get_feature_matrix();
-    KMeans km;
+    KMeans<defaults::KMeansPlusPlus> km;
     std::vector<Eigen::MatrixXd> clusters = km.fit(fm, 3);
     std::cout << km.centroids() << std::endl;
 

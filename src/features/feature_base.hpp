@@ -8,7 +8,7 @@ namespace aegean {
     namespace features {
 
         class FeatureBase {
-          public:
+        public:
             virtual void operator()(const Eigen::MatrixXd& matrix, const float timestep)
             {
                 assert(false);

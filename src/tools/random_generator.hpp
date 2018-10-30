@@ -50,11 +50,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <tools/external/rand_utils.hpp>
 #include <list>
 #include <mutex>
 #include <random>
 #include <stdlib.h>
+#include <tools/external/rand_utils.hpp>
 #include <utility>
 
 namespace limbo {
@@ -67,7 +67,7 @@ namespace limbo {
         /// - double r = rgen.rand();
         template <typename D>
         class RandomGenerator {
-          public:
+        public:
             using result_type = typename D::result_type;
             RandomGenerator(result_type a, result_type b, int seed = -1) : _dist(a, b)
             {
@@ -88,7 +88,7 @@ namespace limbo {
 
             void param(const typename D::param_type& param) { _dist.param(param); }
 
-          private:
+        private:
             D _dist;
             std::mt19937 _rgen;
         };
@@ -180,7 +180,7 @@ namespace limbo {
             for (int i = 0; i < dim; i++) {
                 perm.setIdentity();
                 std::shuffle(perm.indices().data(), perm.indices().data() + perm.indices().size(),
-                             rgen);
+                    rgen);
                 Eigen::MatrixXd tmp = perm * rdpoints;
                 H.col(i) = tmp.col(i);
             }

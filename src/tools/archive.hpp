@@ -8,19 +8,19 @@ https://github.com/resibots/limbo/blob/master/src/limbo/serialize/text_archive.h
 
 #include <Eigen/Core>
 
+#include <cassert>
+#include <cmath>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <cassert>
-#include <sstream>
-#include <fstream>
-#include <cmath>
 
 #include <iostream>
 
 namespace aegean {
     namespace tools {
         class Archive {
-          public:
+        public:
             Archive() : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "") {}
 
             void save(const Eigen::MatrixXd& v, const std::string& filename) const
@@ -31,7 +31,7 @@ namespace aegean {
 
             template <typename M>
             void load(M& m, const std::string& filename, int skip = 0,
-                      const char& delim = '\t') const
+                const char& delim = '\t') const
             {
                 auto values = load(filename, skip, delim);
                 m.resize(values.size(), values[0].size());
@@ -41,7 +41,7 @@ namespace aegean {
             }
 
             std::vector<std::vector<double>> load(const std::string& filename, int skip = 0,
-                                                  const char& delim = ' ') const
+                const char& delim = ' ') const
             {
                 std::ifstream ifs(filename.c_str());
                 assert(ifs.good() && "Invalid file path");
@@ -67,7 +67,7 @@ namespace aegean {
                 return v;
             }
 
-          protected:
+        protected:
             Eigen::IOFormat _fmt;
         };
 

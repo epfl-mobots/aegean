@@ -1,8 +1,8 @@
 #ifndef AEGEAN_TOOLS_POLYGONS_POLYGON_BASE_HPP
 #define AEGEAN_TOOLS_POLYGONS_POLYGON_BASE_HPP
 
-#include <tools/primitives/point.hpp>
 #include <cassert>
+#include <tools/primitives/point.hpp>
 
 namespace aegean {
     namespace tools {
@@ -11,10 +11,10 @@ namespace aegean {
             using namespace primitives;
 
             class PolygonBase {
-              protected:
+            protected:
                 PolygonBase() {}
 
-              public:
+            public:
                 virtual double min_distace(const Point& p) { assert(false); }
                 virtual double max_distace(const Point& p) { assert(false); }
                 virtual bool in_polygon(const Point& p) { assert(false); }

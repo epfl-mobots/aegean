@@ -2,8 +2,8 @@
 #define AEGEAN_TOOLS_MATHTOOLS_HPP
 
 #include <Eigen/Core>
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace aegean {
     namespace tools {

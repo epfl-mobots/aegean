@@ -1,16 +1,16 @@
 #ifndef AEGEAN_FEATURES_BEARING_HPP
 #define AEGEAN_FEATURES_BEARING_HPP
 
+#include <cmath>
 #include <features/feature_base.hpp>
 #include <tools/mathtools.hpp>
 #include <tools/random_generator.hpp>
-#include <cmath>
 
 namespace aegean {
     namespace features {
 
         class Bearing : public FeatureBase {
-          public:
+        public:
             Bearing() : _feature_name("Bearing") {}
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
@@ -38,10 +38,10 @@ namespace aegean {
 
             const std::string& feature_name() override { return _feature_name; }
 
-          protected:
+        protected:
             Eigen::MatrixXd _bearing;
 
-          private:
+        private:
             std::string _feature_name;
         };
 

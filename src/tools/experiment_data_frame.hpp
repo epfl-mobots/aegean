@@ -2,8 +2,8 @@
 #define AEGEAN_TOOLS_EXPERIMENT_DATA_FRAME_HPP
 
 #include <Eigen/Core>
-#include <tools/reconstruction/no_reconstruction.hpp>
 #include <features/no_feature.hpp>
+#include <tools/reconstruction/no_reconstruction.hpp>
 
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/for_each.hpp>
@@ -19,7 +19,7 @@ namespace aegean {
 
     struct ConstructFeatures {
         ConstructFeatures(const Eigen::MatrixXd& trajectories, ResultVecPtr results,
-                          const float timestep, const uint skip_rows)
+            const float timestep, const uint skip_rows)
             : _trajectories(trajectories),
               _results(results),
               _timestep(timestep),
@@ -62,7 +62,7 @@ namespace aegean {
 
         using edf_signature
             = boost::parameter::parameters<boost::parameter::optional<tag::reconfun>,
-                                           boost::parameter::optional<tag::featset>>;
+                boost::parameter::optional<tag::featset>>;
 
         template <class A1 = boost::parameter::void_, class A2 = boost::parameter::void_>
         class ExperimentDataFrame {
@@ -75,15 +75,15 @@ namespace aegean {
             using args = typename edf_signature::bind<A1, A2>::type;
             using ReconstructionMethod =
                 typename boost::parameter::binding<args, tag::reconfun,
-                                                   typename defaults::reconstruction_t>::type;
+                    typename defaults::reconstruction_t>::type;
             using Features =
                 typename boost::parameter::binding<args, tag::featset,
-                                                   typename defaults::features_t>::type;
+                    typename defaults::features_t>::type;
 
-          public:
+        public:
             ExperimentDataFrame(const Eigen::MatrixXd& positions, const uint fps = 15,
-                                const uint centroid_samples = 0, const float scale = 1.0f,
-                                const uint skip_rows = 0)
+                const uint centroid_samples = 0, const float scale = 1.0f,
+                const uint skip_rows = 0)
                 : _positions(positions),
                   _fps(fps),
                   _centroid_samples(centroid_samples),
@@ -113,7 +113,7 @@ namespace aegean {
 
                 // use the extra rows to compute the features and then remove them
                 _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows,
-                                              _positions.cols());
+                    _positions.cols());
             }
 
             const Eigen::MatrixXd& positions() const { return _positions; }
@@ -137,7 +137,7 @@ namespace aegean {
             const ResultVecPtr features() { return _feature_res; }
             const NameVecPtr feature_names() { return _feature_names; }
 
-          protected:
+        protected:
             void _filter_positions()
             {
                 Eigen::MatrixXd centroidal;

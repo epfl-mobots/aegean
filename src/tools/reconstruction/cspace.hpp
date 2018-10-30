@@ -2,14 +2,14 @@
 #define AEGEAN_TOOLS_RECONSTRUCTION_CSPACE_HPP
 
 #include "reconstruction_base.hpp"
-#include <tools/polygons/circular_corridor.hpp>
 #include <tools/mathtools.hpp>
+#include <tools/polygons/circular_corridor.hpp>
 
 #include <Eigen/Core>
-#include <vector>
-#include <utility>
 #include <cmath>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 namespace aegean {
     namespace tools {
@@ -19,7 +19,7 @@ namespace aegean {
 
             template <typename CircularCorridor>
             struct CSpace : public ReconstructionBase {
-              public:
+            public:
                 void operator()(Eigen::MatrixXd& matrix) override
                 {
                     for (uint i = 0; i < matrix.cols(); i += 2) {
@@ -40,14 +40,14 @@ namespace aegean {
                             uint num_missing = next - current;
                             if (num_missing > 1) {
                                 _generate_circular_trajectory(individual, num_missing, current,
-                                                              next, true);
+                                    next, true);
                             }
                         }
 
                         // reconstruct missing values in the beginning and end of thetrajectories if
                         // (rows_wo_nans[0] > 0)
                         _generate_circular_trajectory(individual, rows_wo_nans[0], rows_wo_nans[2],
-                                                      rows_wo_nans[1], false);
+                            rows_wo_nans[1], false);
 
                         if (rows_wo_nans[rows_wo_nans.size() - 1] < matrix.rows() - 1) {
                             int num_missing
@@ -68,18 +68,18 @@ namespace aegean {
                         }
 
                         assert((matrix.rows() == static_cast<uint>(rows_wo_nans.size()))
-                               && "Reconstructing went wrong");
+                            && "Reconstructing went wrong");
                         matrix.col(i) = individual.col(0);
                         matrix.col(i + 1) = individual.col(1);
                     }
                 }
 
-              protected:
+            protected:
                 void _generate_circular_trajectory(Eigen::MatrixXd& individual,
-                                                   const uint num_missing,
-                                                   const uint first_valid_idx,
-                                                   const uint second_valid_idx,
-                                                   const bool fit_between)
+                    const uint num_missing,
+                    const uint first_valid_idx,
+                    const uint second_valid_idx,
+                    const bool fit_between)
                 {
                     double r;
                     std::tuple<double, double, double> thetas;
@@ -111,7 +111,7 @@ namespace aegean {
                         phi = std::fabs(std::get<0>(thetas));
 
                         int direction = sgn(static_cast<int>(first_valid_idx)
-                                            - static_cast<int>(second_valid_idx));
+                            - static_cast<int>(second_valid_idx));
                         int start_idx;
                         (direction < 0) ? start_idx = first_valid_idx - direction
                                         : start_idx = second_valid_idx - direction;
@@ -132,7 +132,7 @@ namespace aegean {
 
                 std::pair<double, std::tuple<double, double, double>>
                 _fit_circle(const Eigen::MatrixXd& individual, uint first_valid_idx,
-                            uint second_valid_idx) const
+                    uint second_valid_idx) const
                 {
                     Eigen::Vector2d r1, r2;
                     r1(0) = individual(first_valid_idx, 0) - _cc.center().x();
@@ -142,11 +142,11 @@ namespace aegean {
                     double r = (r1.norm() + r2.norm()) / 2;
 
                     double theta1 = std::atan2(individual(first_valid_idx, 1) - _cc.center().y(),
-                                               individual(first_valid_idx, 0) - _cc.center().x())
+                                        individual(first_valid_idx, 0) - _cc.center().x())
                         * 180 / M_PI;
                     theta1 = (theta1 < 0) ? theta1 + 360 : theta1;
                     double theta2 = std::atan2(individual(second_valid_idx, 1) - _cc.center().y(),
-                                               individual(second_valid_idx, 0) - _cc.center().x())
+                                        individual(second_valid_idx, 0) - _cc.center().x())
                         * 180 / M_PI;
                     theta2 = (theta2 < 0) ? theta2 + 360 : theta2;
                     double theta = theta1 - theta2;

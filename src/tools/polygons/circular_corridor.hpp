@@ -20,12 +20,12 @@ namespace aegean {
 
             template <typename Params>
             class CircularCorridor : public PolygonBase {
-              public:
+            public:
                 CircularCorridor()
                     : _inner_r(Params::CircularCorridor::inner_radius),
                       _outer_r(Params::CircularCorridor::outer_radius),
                       _center(Params::CircularCorridor::center_x,
-                              Params::CircularCorridor::center_y)
+                          Params::CircularCorridor::center_y)
                 {
                 }
 
@@ -69,7 +69,7 @@ namespace aegean {
                 double outer_radius() const { return _outer_r; }
                 Point center() const { return _center; }
 
-              protected:
+            protected:
                 const double _inner_r;
                 const double _outer_r;
                 const Point _center;

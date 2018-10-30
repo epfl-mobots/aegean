@@ -1,10 +1,10 @@
 #ifndef AEGEAN_FEATURES_INTER_INDIVIDUAL_DISTANCE_HPP
 #define AEGEAN_FEATURES_INTER_INDIVIDUAL_DISTANCE_HPP
 
+#include <cmath>
 #include <features/feature_base.hpp>
 #include <tools/mathtools.hpp>
 #include <tools/random_generator.hpp>
-#include <cmath>
 
 #include <iostream>
 
@@ -44,7 +44,7 @@ namespace aegean {
 
         template <typename DistanceFunc>
         class InterIndividualDistance : public FeatureBase {
-          public:
+        public:
             InterIndividualDistance() : _feature_name("InterIndividual") {}
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
@@ -76,10 +76,10 @@ namespace aegean {
 
             const std::string& feature_name() override { return _feature_name; }
 
-          protected:
+        protected:
             Eigen::MatrixXd _iid;
 
-          private:
+        private:
             DistanceFunc _distance;
             std::string _feature_name;
         };

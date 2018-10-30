@@ -7,7 +7,7 @@ namespace aegean {
     namespace features {
 
         class NoFeature : public FeatureBase {
-          public:
+        public:
             NoFeature() : _feature_name("no_feature") {}
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override {}
@@ -16,7 +16,7 @@ namespace aegean {
 
             const std::string& feature_name() override { return _feature_name; }
 
-          private:
+        private:
             std::string _feature_name;
         };
 

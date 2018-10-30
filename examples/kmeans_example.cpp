@@ -47,18 +47,16 @@ int main()
     using features_t
         = boost::fusion::vector<aegean::features::InterIndividualDistance<distance_func_t>,
             aegean::features::Alignment>;
-
     ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>> edf(positions, 15, 3,
         1.13 / 1024, 855);
-
     Eigen::MatrixXd fm = edf.get_feature_matrix();
-    KMeans<defaults::KMeansPlusPlus> km;
-    std::vector<Eigen::MatrixXd> clusters = km.fit(fm, 3);
-    std::cout << km.centroids() << std::endl;
 
     GapStatistic<KMeans<defaults::KMeansPlusPlus>> gs;
-    uint k = gs.opt_k(fm, 2, 10);
-    std::cout << "opt k " << k << std::endl;
+    uint optimal_k = gs.opt_k(fm, 2, 10);
+
+    KMeans<defaults::KMeansPlusPlus> km;
+    std::vector<Eigen::MatrixXd> clusters = km.fit(optimal_k, 3);
+    std::cout << km.centroids() << std::endl;
 
     return 0;
 }

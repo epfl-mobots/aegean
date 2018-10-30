@@ -61,7 +61,8 @@ namespace aegean {
         BOOST_PARAMETER_TEMPLATE_KEYWORD(featset)
 
         using edf_signature
-            = boost::parameter::parameters<boost::parameter::optional<tag::reconfun>,
+            = boost::parameter::parameters<
+                boost::parameter::optional<tag::reconfun>,
                 boost::parameter::optional<tag::featset>>;
 
         template <class A1 = boost::parameter::void_, class A2 = boost::parameter::void_>
@@ -74,11 +75,9 @@ namespace aegean {
 
             using args = typename edf_signature::bind<A1, A2>::type;
             using ReconstructionMethod =
-                typename boost::parameter::binding<args, tag::reconfun,
-                    typename defaults::reconstruction_t>::type;
+                typename boost::parameter::binding<args, tag::reconfun, typename defaults::reconstruction_t>::type;
             using Features =
-                typename boost::parameter::binding<args, tag::featset,
-                    typename defaults::features_t>::type;
+                typename boost::parameter::binding<args, tag::featset, typename defaults::features_t>::type;
 
         public:
             ExperimentDataFrame(const Eigen::MatrixXd& positions, const uint fps = 15,
@@ -91,7 +90,8 @@ namespace aegean {
                   _scale(scale),
                   _skip_rows(skip_rows / _centroid_samples),
                   _num_individuals(_positions.cols() / 2),
-                  _feature_res(std::make_shared<std::vector<Eigen::MatrixXd>>())
+                  _feature_res(std::make_shared<std::vector<Eigen::MatrixXd>>()),
+                  _feature_names(std::make_shared<std::vector<std::string>>())
             {
                 // scale position matrix (e.g., this can be used to convert from pixels to cm)
                 _positions *= scale;
@@ -107,13 +107,11 @@ namespace aegean {
                 ConstructFeatures cf(_positions, _feature_res, _timestep, _skip_rows);
                 boost::fusion::for_each(_features, cf);
 
-                auto names = std::make_shared<std::vector<std::string>>();
-                FeatureNames fn(names);
+                FeatureNames fn(_feature_names);
                 boost::fusion::for_each(_features, fn);
 
                 // use the extra rows to compute the features and then remove them
-                _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows,
-                    _positions.cols());
+                _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows, _positions.cols());
             }
 
             const Eigen::MatrixXd& positions() const { return _positions; }
@@ -134,8 +132,11 @@ namespace aegean {
                 return feature_mat;
             }
 
-            const ResultVecPtr features() { return _feature_res; }
-            const NameVecPtr feature_names() { return _feature_names; }
+            std::vector<Eigen::MatrixXd> features() const { return *_feature_res; }
+            std::vector<std::string> feature_names() const
+            {
+                return *_feature_names;
+            }
 
         protected:
             void _filter_positions()

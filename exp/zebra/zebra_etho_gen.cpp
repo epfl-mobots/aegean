@@ -121,6 +121,12 @@ int main(int argc, char** argv)
     for (uint i = 0; i < dataframes.size(); ++i) {
         etho.archive().save(dataframes[i].positions(),
             std::string("exp_") + std::to_string(i) + std::string("_reconstructed_positions"));
+
+        Eigen::MatrixXd features = dataframes[i].get_feature_matrix();
+        for (uint j = 0; j < features.cols(); ++j) {
+            etho.archive().save(features.col(j),
+                std::string("exp_") + std::to_string(i) + std::string("_") + feature_names[j]);
+        }
     }
 
     {

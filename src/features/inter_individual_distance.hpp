@@ -45,7 +45,7 @@ namespace aegean {
         template <typename DistanceFunc>
         class InterIndividualDistance : public FeatureBase {
         public:
-            InterIndividualDistance() : _feature_name("InterIndividual") {}
+            InterIndividualDistance() : _feature_name("interIndividual") {}
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {

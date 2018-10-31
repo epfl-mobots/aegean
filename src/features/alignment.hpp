@@ -11,7 +11,7 @@ namespace aegean {
 
         class Alignment : public Bearing {
         public:
-            Alignment() : _feature_name("Alignment") {}
+            Alignment() : _feature_name("alignment") {}
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {

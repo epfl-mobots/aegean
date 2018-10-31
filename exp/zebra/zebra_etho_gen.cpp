@@ -15,6 +15,7 @@
 #include <Eigen/Core>
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 using namespace aegean;
 using namespace clustering;
@@ -65,7 +66,7 @@ int main(int argc, char** argv)
     Eigen::MatrixXd data;
     std::vector<std::string> feature_names;
     std::vector<uint> exp_segment_idcs(1, 0);
-    Archive dl;
+    Archive dl(false);
     for (const std::string f : files) {
         // first we load the raw trajectories as generated in idTracker
         Eigen::MatrixXd exp_data;
@@ -99,15 +100,34 @@ int main(int argc, char** argv)
     }
 
     using clustering_t = KMeans<aegean::defaults::KMeansPlusPlus>;
-    using clustering_opt_t = GapStatistic<clustering_t, 2, 10>;
-    // using clustering_opt_t = NoOpt<3>;
+    // using clustering_opt_t = GapStatistic<clustering_t, 2, 10>;
+    using clustering_opt_t = NoOpt<3>;
 
     AutomatedEthogram<
         clusteringmethod<clustering_t>,
         clusteringopt<clustering_opt_t>>
-        etho(data);
+        etho(data, exp_segment_idcs);
     etho.compute();
-    std::cout << etho.num_behaviours() << std::endl;
+    etho.save();
+
+    std::cout << "Cluster centroids (KMeans)" << std::endl;
+    std::cout << etho.model().centroids() << std::endl
+              << std::endl;
+    ;
+
+    // saving parameters
+    {
+        std::ofstream ofs(etho.etho_path() + "/num_centroids.dat");
+        ofs << centroids << std::endl;
+    }
+    {
+        std::ofstream ofs(etho.etho_path() + "/window_in_seconds.dat");
+        ofs << window_in_seconds << std::endl;
+    }
+    {
+        std::ofstream ofs(etho.etho_path() + "/num_behaviours.dat");
+        ofs << etho.num_behaviours() << std::endl;
+    }
 
     return 0;
 }

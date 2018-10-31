@@ -25,7 +25,7 @@ namespace aegean {
     namespace tools {
         class Archive {
         public:
-            Archive() : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "")
+            Archive(bool create_dir = true) : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "")
             {
                 namespace ip = boost::asio::ip;
                 std::string hn = ip::host_name();
@@ -36,12 +36,16 @@ namespace aegean {
                 std::time(&rawtime);
                 timeinfo = std::localtime(&rawtime);
                 std::strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", timeinfo);
-                std::puts(buffer);
 
                 _dir_name = hn + "_" + std::string(buffer);
+                if (create_dir)
+                    _create_directory();
             }
 
-            void save(const Eigen::MatrixXd& v, const std::string& filename) const
+            const std::string& dir_name() const { return _dir_name; }
+
+            template <typename EigenMat>
+            void save(const EigenMat& v, const std::string& filename) const
             {
                 _create_directory();
                 std::ofstream ofs(_fname(filename));

@@ -46,6 +46,8 @@
 #ifndef LIMBO_MODEL_CLUSTERING_KMEANS_HPP
 #define LIMBO_MODEL_CLUSTERING_KMEANS_HPP
 
+#include <tools/archive.hpp>
+
 #include <map>
 #include <vector>
 
@@ -193,6 +195,12 @@ namespace aegean {
                     predictions(i) = min_k;
                 }
                 return predictions;
+            }
+
+            void save(const tools::Archive& archive) const
+            {
+                archive.save(_centroids, "centroids_kmeans");
+                archive.save(_labels, "labels_kmeans");
             }
 
             const Eigen::MatrixXd& centroids() const { return _centroids; }

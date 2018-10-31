@@ -63,6 +63,8 @@ int main(int argc, char** argv)
         features::InterIndividualDistance<distance_func_t>,
         features::Alignment>;
 
+    using ExpDataFrame = ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>>;
+    std::vector<ExpDataFrame> dataframes;
     Eigen::MatrixXd data;
     std::vector<std::string> feature_names;
     std::vector<uint> exp_segment_idcs(1, 0);
@@ -76,9 +78,9 @@ int main(int argc, char** argv)
         Eigen::MatrixXd positions = exp_data.block(exp_data.rows() - initial_keep, 0, initial_keep, exp_data.cols());
 
         // we process the raw positions to extract useful features for every timestep
-        ExperimentDataFrame<reconfun<reconstruction_t>, featset<features_t>>
-            edf(positions, fps, centroids, scale, initial_keep - process_frames);
+        ExpDataFrame edf(positions, fps, centroids, scale, initial_keep - process_frames);
         Eigen::MatrixXd fm = edf.get_feature_matrix();
+        dataframes.push_back(edf);
 
         Eigen::MatrixXd avg_fm;
         for (uint i = 0; i < fm.rows(); i += window_in_seconds) {
@@ -115,7 +117,12 @@ int main(int argc, char** argv)
               << std::endl;
     ;
 
-    // saving parameters
+    // saving
+    for (uint i = 0; i < dataframes.size(); ++i) {
+        etho.archive().save(dataframes[i].positions(),
+            std::string("exp_") + std::to_string(i) + std::string("_reconstructed_positions"));
+    }
+
     {
         std::ofstream ofs(etho.etho_path() + "/num_centroids.dat");
         ofs << centroids << std::endl;

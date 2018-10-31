@@ -90,6 +90,7 @@ namespace aegean {
             const uint num_behaviours() const { return _clusters.size(); }
             const ClusteringMethod& model() const { return _clusterer; }
             const std::string& etho_path() const { return _archive.dir_name(); }
+            const tools::Archive& archive() const { return _archive; }
 
             const std::vector<Eigen::MatrixXd>& transition_probs() const { return _transition_probs; }
             const std::vector<Eigen::VectorXd>& behaviour_probs() const { return _behaviour_probs; }

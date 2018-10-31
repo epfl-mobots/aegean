@@ -36,6 +36,7 @@ def configure(conf):
     conf.load('boost')
     conf.load('eigen')
 
+    conf.check(lib='pthread')
     conf.check_boost(
         lib='regex system filesystem unit_test_framework', min_version='1.46')
     conf.check_eigen(required=True)
@@ -55,6 +56,7 @@ def configure(conf):
 
     all_flags = common_flags + opt_flags
     conf.env['CXXFLAGS'] = conf.env['CXXFLAGS'] + all_flags.split(' ')
+    conf.env.append_value("LINKFLAGS", ["-pthread"])
     print(conf.env['CXXFLAGS'])
 
 

@@ -14,18 +14,37 @@ https://github.com/resibots/limbo/blob/master/src/limbo/serialize/text_archive.h
 #include <sstream>
 #include <string>
 #include <vector>
-
+#include <cstdio>
+#include <ctime>
 #include <iostream>
+
+#include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
 
 namespace aegean {
     namespace tools {
         class Archive {
         public:
-            Archive() : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "") {}
+            Archive() : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "")
+            {
+                namespace ip = boost::asio::ip;
+                std::string hn = ip::host_name();
+
+                std::time_t rawtime;
+                std::tm* timeinfo;
+                char buffer[80];
+                std::time(&rawtime);
+                timeinfo = std::localtime(&rawtime);
+                std::strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", timeinfo);
+                std::puts(buffer);
+
+                _dir_name = hn + "_" + std::string(buffer);
+            }
 
             void save(const Eigen::MatrixXd& v, const std::string& filename) const
             {
-                std::ofstream ofs(filename);
+                _create_directory();
+                std::ofstream ofs(_fname(filename));
                 ofs << v.format(_fmt) << std::endl;
             }
 
@@ -68,7 +87,19 @@ namespace aegean {
             }
 
         protected:
+            void _create_directory() const
+            {
+                boost::filesystem::path my_path(_dir_name);
+                boost::filesystem::create_directories(my_path);
+            }
+
+            std::string _fname(const std::string& f) const
+            {
+                return _dir_name + "/" + f + ".dat";
+            }
+
             Eigen::IOFormat _fmt;
+            std::string _dir_name;
         };
 
     } // namespace tools

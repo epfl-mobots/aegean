@@ -64,6 +64,7 @@ int main(int argc, char** argv)
 
     Eigen::MatrixXd data;
     std::vector<std::string> feature_names;
+    std::vector<uint> exp_segment_idcs(1, 0);
     Archive dl;
     for (const std::string f : files) {
         // first we load the raw trajectories as generated in idTracker
@@ -94,6 +95,7 @@ int main(int argc, char** argv)
             data = avg_fm;
             feature_names = edf.feature_names();
         }
+        exp_segment_idcs.push_back(exp_segment_idcs[exp_segment_idcs.size() - 1] + avg_fm.rows());
     }
 
     using clustering_t = KMeans<aegean::defaults::KMeansPlusPlus>;

@@ -44,9 +44,7 @@ int main(int argc, char** argv)
         path + "/fish_only/8_fish_only/trajectories.txt",
         path + "/fish_only/9_fish_only/trajectories.txt",
         path + "/fish_only/10_fish_only/trajectories.txt",
-        path + "/fish_only/19_fish_only/trajectories.txt"
-
-    };
+        path + "/fish_only/19_fish_only/trajectories.txt"};
 
     // setting the setup specifications (e.g., camera specs, setup scale, etc)
     int initial_keep = 27855;

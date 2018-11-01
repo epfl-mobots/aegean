@@ -52,7 +52,8 @@ int main(int argc, char** argv)
     int fps = 15;
     int centroids = 3;
     double scale = 1.13 / 1024;
-    uint window_in_seconds = 5 * 3;
+    uint window_in_seconds = 3;
+    uint aggregate_frames = static_cast<int>(fps / centroids) * window_in_seconds;
 
     using distance_func_t
         = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
@@ -81,9 +82,9 @@ int main(int argc, char** argv)
         dataframes.push_back(edf);
 
         Eigen::MatrixXd avg_fm;
-        for (uint i = 0; i < fm.rows(); i += window_in_seconds) {
+        for (uint i = 0; i < fm.rows(); i += aggregate_frames) {
             avg_fm.conservativeResize(avg_fm.rows() + 1, fm.cols());
-            avg_fm.row(avg_fm.rows() - 1) = fm.block(i, 0, window_in_seconds, fm.cols()).colwise().mean();
+            avg_fm.row(avg_fm.rows() - 1) = fm.block(i, 0, aggregate_frames, fm.cols()).colwise().mean();
         }
 
         // append all features to one matrix to compute an complete ethogram

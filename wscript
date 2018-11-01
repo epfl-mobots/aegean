@@ -95,4 +95,11 @@ def build(bld):
                 uselib=libs,
                 target='zebra_etho_gen')
 
+    bld.program(features='cxx',
+                install_path=None,
+                source='exp/zebra/zebra_nn_train.cpp',
+                includes='./src',
+                uselib=libs,
+                target='zebra_nn_train')
+
     bld.add_post_fun(summary)

@@ -1,0 +1,3 @@
+[submodule "src/nn"]
+	path = src/nn
+	url = git@github.com:resibots/simple_nn.git

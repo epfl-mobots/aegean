@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     for (const std::string f : files) {
         // first we load the raw trajectories as generated in idTracker
         Eigen::MatrixXd exp_data;
-        dl.load<Eigen::MatrixXd>(exp_data, f, 1);
+        dl.load<Eigen::MatrixXd>(exp_data, f, 1, '\t');
         std::vector<uint> prob_cols = {2, 5, 8, 11, 14, 17};
         removeCols(exp_data, prob_cols); // remove idTracker probability cols
         Eigen::MatrixXd positions = exp_data.block(exp_data.rows() - initial_keep, 0, initial_keep, exp_data.cols());
@@ -119,12 +119,15 @@ int main(int argc, char** argv)
     // saving
     for (uint i = 0; i < dataframes.size(); ++i) {
         etho.archive().save(dataframes[i].positions(),
-            std::string("exp_") + std::to_string(i) + std::string("_reconstructed_positions"));
+            std::string("seg_") + std::to_string(i) + std::string("_reconstructed_positions"));
+
+        etho.archive().save(dataframes[i].velocities(),
+            std::string("seg_") + std::to_string(i) + std::string("_reconstructed_velocities"));
 
         Eigen::MatrixXd features = dataframes[i].get_feature_matrix();
         for (uint j = 0; j < features.cols(); ++j) {
             etho.archive().save(features.col(j),
-                std::string("exp_") + std::to_string(i) + std::string("_") + feature_names[j]);
+                std::string("seg_") + std::to_string(i) + std::string("_") + feature_names[j]);
         }
     }
 
@@ -139,6 +142,10 @@ int main(int argc, char** argv)
     {
         std::ofstream ofs(etho.etho_path() + "/num_behaviours.dat");
         ofs << etho.num_behaviours() << std::endl;
+    }
+    {
+        std::ofstream ofs(etho.etho_path() + "/fps.dat");
+        ofs << fps << std::endl;
     }
 
     return 0;

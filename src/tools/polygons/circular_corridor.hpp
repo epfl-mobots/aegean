@@ -2,6 +2,8 @@
 #define AEGEAN_TOOLS_POLYGONS_CIRCULAR_CORRIDOR_HPP
 
 #include "polygon_base.hpp"
+#include <Eigen/Core>
+#include <algorithm>
 
 namespace aegean {
     namespace defaults {

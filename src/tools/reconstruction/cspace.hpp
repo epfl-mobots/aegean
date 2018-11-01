@@ -29,8 +29,9 @@ namespace aegean {
                         // value intervals
                         std::vector<uint> rows_wo_nans;
                         for (uint j = 0; j < individual.rows(); ++j) {
-                            if (individual.row(j).array().isNaN().count() == 0)
+                            if (individual.row(j).array().isNaN().count() == 0) {
                                 rows_wo_nans.push_back(j);
+                            }
                         }
 
                         // reconstruct intervals first

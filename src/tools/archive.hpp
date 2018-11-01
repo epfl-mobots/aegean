@@ -54,7 +54,7 @@ namespace aegean {
 
             template <typename M>
             void load(M& m, const std::string& filename, int skip = 0,
-                const char& delim = '\t') const
+                const char& delim = ' ') const
             {
                 auto values = load(filename, skip, delim);
                 m.resize(values.size(), values[0].size());

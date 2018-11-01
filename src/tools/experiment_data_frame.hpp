@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <features/no_feature.hpp>
 #include <tools/reconstruction/no_reconstruction.hpp>
+#include <tools/mathtools.hpp>
+#include <tools/random_generator.hpp>
 
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/for_each.hpp>
@@ -111,10 +113,21 @@ namespace aegean {
                 boost::fusion::for_each(_features, fn);
 
                 // use the extra rows to compute the features and then remove them
-                _positions = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows, _positions.cols());
+                _compute_velocities();
+
+                // eigen does not always behave well with matrix = matrix.block(...)
+                {
+                    Eigen::MatrixXd bl = _positions.block(_skip_rows, 0, _positions.rows() - _skip_rows, _positions.cols());
+                    _positions = bl;
+                }
+                {
+                    Eigen::MatrixXd bl = _velocities.block(_skip_rows, 0, _velocities.rows() - _skip_rows, _velocities.cols());
+                    _velocities = bl;
+                }
             }
 
             const Eigen::MatrixXd& positions() const { return _positions; }
+            const Eigen::MatrixXd& velocities() const { return _velocities; }
             uint fps() const { return _fps; }
             uint centroid_samples() const { return _centroid_samples; }
             float scale() const { return _scale; }
@@ -157,8 +170,12 @@ namespace aegean {
                         = block.array().isNaN().select(0, block).colwise().sum();
 
                     for (uint j = 0; j < centroidal_position.cols(); ++j) {
-                        if (denom(j) > 0)
+                        if (denom(j) > 0) {
                             centroidal_position(j) /= denom(j);
+
+                            if (denom(j) < 1)
+                                std::cout << denom(j) << std::endl;
+                        }
                         else
                             centroidal_position(j) = std::nan("NaN");
                     }
@@ -168,7 +185,26 @@ namespace aegean {
                 _positions = centroidal;
             }
 
+            void _compute_velocities()
+            {
+                _velocities = _compute_diff(_positions);
+            }
+
+            Eigen::MatrixXd _compute_diff(const Eigen::MatrixXd& matrix) const
+            {
+                Eigen::MatrixXd diff;
+                const uint duration = matrix.rows();
+                Eigen::VectorXd noise = Eigen::VectorXd::Ones(matrix.cols())
+                    - limbo::tools::random_vector_bounded(matrix.cols()) / 10;
+                Eigen::MatrixXd rolled = tools::rollMatrix(matrix, -1);
+                for (uint i = 0; i < rolled.cols(); ++i)
+                    rolled(duration - 1, i) = matrix(duration - 1, i) * noise(i);
+                diff = (rolled - matrix) / _timestep;
+                return diff;
+            }
+
             Eigen::MatrixXd _positions;
+            Eigen::MatrixXd _velocities;
             const uint _fps;
             const uint _centroid_samples;
             const float _timestep;

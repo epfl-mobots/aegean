@@ -1,3 +1,8 @@
+#include <simple_nn/loss.hpp>
+#include <simple_nn/neural_net.hpp>
+
+#include <limbo/opt/adam.hpp>
+
 #include <tools/polygons/circular_corridor.hpp>
 #include <tools/archive.hpp>
 #include <tools/experiment_data_frame.hpp>
@@ -16,6 +21,28 @@ using namespace tools;
 
 struct Params {
     struct CircularCorridor : public defaults::CircularCorridor {
+    };
+
+    struct opt_adam {
+        /// @ingroup opt_defaults
+        /// number of max iterations
+        BO_PARAM(int, iterations, 300);
+
+        /// @ingroup opt_defaults
+        /// alpha - learning rate
+        BO_PARAM(double, alpha, 0.001);
+
+        /// @ingroup opt_defaults
+        /// β1
+        BO_PARAM(double, b1, 0.9);
+
+        /// @ingroup opt_defaults
+        /// β2
+        BO_PARAM(double, b2, 0.999);
+
+        /// @ingroup opt_defaults
+        /// norm epsilon for stopping
+        BO_PARAM(double, eps_stop, 0.0);
     };
 };
 
@@ -133,8 +160,19 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
                 Eigen::MatrixXd phi = Eigen::MatrixXd(target.rows(), 1);
                 for (uint k = 0; k < phi.rows(); ++k)
                     phi(k) = std::fmod(std::atan2(target(k, 1), target(k, 0)) * 180 / M_PI + 360, 360) / 360;
-                target.col(0) = radius;
-                target.col(0) = phi;
+
+                Eigen::MatrixXd pos_in_cc = radius;
+                pos_in_cc.unaryExpr([&](double val) {
+                    double pos_in_cc = val;
+                    if (pos_in_cc < val)
+                        pos_in_cc = 0;
+                    else if (cc.outer_radius() - val)
+                        pos_in_cc = cc.outer_radius();
+                    return pos_in_cc;
+                });
+
+                target.col(0) = pos_in_cc;
+                target.col(1) = phi;
 #endif
 
                 std::vector<uint> rm = {skip * 2, skip * 2 + 1};
@@ -207,10 +245,40 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> load(int a
 
 int main(int argc, char** argv)
 {
+    std::srand(std::time(NULL));
+
     // TODO: add option parser
     assert(argc == 3);
     std::vector<Eigen::MatrixXd> inputs, outputs;
     std::tie(inputs, outputs) = load(argc, argv);
+
+    // uint behav = inputs.size();
+    uint behav = 0;
+
+    simple_nn::NeuralNet network;
+    network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(inputs[behav].cols(), 100);
+    network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, outputs[behav].cols());
+
+    // Random initial weights
+    Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());
+    network.set_weights(theta);
+
+    int i = 0;
+    auto func = [&](const Eigen::VectorXd& params, bool eval_grad) {
+        assert(eval_grad);
+        double f = -network.get_loss<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
+        Eigen::VectorXd grad = -network.backward<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
+
+        if (i++ % 1 == 0)
+            std::cout << "Loss (iteration " << i - 1 << "): " << -f << std::endl;
+
+        return limbo::opt::eval_t{f, grad};
+    };
+    limbo::opt::Adam<Params> adam;
+    Eigen::VectorXd best_theta = adam(func, theta, false);
+
+    Eigen::MatrixXd out = network.forward(inputs[behav].row(0).transpose());
+    std::cout << out << std::endl;
 
     return 0;
 }

@@ -119,15 +119,15 @@ int main(int argc, char** argv)
     // saving
     for (uint i = 0; i < dataframes.size(); ++i) {
         etho.archive().save(dataframes[i].positions(),
-            std::string("seg_") + std::to_string(i) + std::string("_reconstructed_positions"));
+            "seg_" + std::to_string(i) + "_reconstructed_positions");
 
         etho.archive().save(dataframes[i].velocities(),
-            std::string("seg_") + std::to_string(i) + std::string("_reconstructed_velocities"));
+            "seg_" + std::to_string(i) + "_reconstructed_velocities");
 
         Eigen::MatrixXd features = dataframes[i].get_feature_matrix();
         for (uint j = 0; j < features.cols(); ++j) {
             etho.archive().save(features.col(j),
-                std::string("seg_") + std::to_string(i) + std::string("_") + feature_names[j]);
+                "seg_" + std::to_string(i) + "_" + feature_names[j]);
         }
     }
 

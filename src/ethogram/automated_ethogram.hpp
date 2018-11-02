@@ -69,20 +69,20 @@ namespace aegean {
                 for (uint i = 0; i < _segment_idcs.size() - 1; ++i) {
                     Eigen::VectorXi seg_labels = _labels.block(_segment_idcs[i], 0, _segment_idcs[i + 1] - _segment_idcs[i], _labels.cols());
                     _archive.save(seg_labels,
-                        std::string("seg_") + std::to_string(i) + std::string("_labels"));
+                        "seg_" + std::to_string(i) + "_labels");
                 }
 
                 for (uint i = 0; i < _transition_probs.size(); ++i)
                     _archive.save(_transition_probs[i],
-                        std::string("seg_") + std::to_string(i) + std::string("_transition_probabilities"));
+                        "seg_" + std::to_string(i) + "_transition_probabilities");
 
                 for (uint i = 0; i < _behaviour_probs.size(); ++i)
                     _archive.save(_behaviour_probs[i],
-                        std::string("seg_") + std::to_string(i) + std::string("_behaviour_probabilities"));
+                        "seg_" + std::to_string(i) + "_behaviour_probabilities");
 
                 for (uint i = 0; i < _behaviour_sequence.size(); ++i)
                     _archive.save(_behaviour_sequence[i],
-                        std::string("seg_") + std::to_string(i) + std::string("_behaviour_sequence"));
+                        "seg_" + std::to_string(i) + "_behaviour_sequence");
             }
 
             const std::vector<Eigen::MatrixXd>& clusters() const { return _clusters; }

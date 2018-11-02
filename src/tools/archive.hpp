@@ -25,7 +25,9 @@ namespace aegean {
     namespace tools {
         class Archive {
         public:
-            Archive(bool create_dir = true) : _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "")
+            Archive(bool create_dir = true)
+                : _create_dir(create_dir),
+                  _fmt(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n", "", "")
             {
                 namespace ip = boost::asio::ip;
                 std::string hn = ip::host_name();
@@ -37,9 +39,12 @@ namespace aegean {
                 timeinfo = std::localtime(&rawtime);
                 std::strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", timeinfo);
 
-                _dir_name = hn + "_" + std::string(buffer);
-                if (create_dir)
+                if (_create_dir) {
+                    _dir_name = hn + "_" + std::string(buffer);
                     _create_directory();
+                }
+                else
+                    _dir_name = ".";
             }
 
             const std::string& dir_name() const { return _dir_name; }
@@ -93,8 +98,10 @@ namespace aegean {
         protected:
             void _create_directory() const
             {
-                boost::filesystem::path my_path(_dir_name);
-                boost::filesystem::create_directories(my_path);
+                if (_create_dir) {
+                    boost::filesystem::path my_path(_dir_name);
+                    boost::filesystem::create_directories(my_path);
+                }
             }
 
             std::string _fname(const std::string& f) const
@@ -102,6 +109,7 @@ namespace aegean {
                 return _dir_name + "/" + f + ".dat";
             }
 
+            const bool _create_dir;
             Eigen::IOFormat _fmt;
             std::string _dir_name;
         };

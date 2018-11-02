@@ -26,7 +26,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 300);
+        BO_PARAM(int, iterations, 5000);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate
@@ -251,34 +251,55 @@ int main(int argc, char** argv)
     assert(argc == 3);
     std::vector<Eigen::MatrixXd> inputs, outputs;
     std::tie(inputs, outputs) = load(argc, argv);
+    std::string path(argv[1]);
+    Archive archive(false);
 
-    // uint behav = inputs.size();
-    uint behav = 0;
+    int N = 1024;
+    for (uint behav = 0; behav < inputs.size(); ++behav) {
+        simple_nn::NeuralNet network;
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(inputs[behav].cols(), 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, outputs[behav].cols());
 
-    simple_nn::NeuralNet network;
-    network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(inputs[behav].cols(), 100);
-    network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, outputs[behav].cols());
+        // Random initial weights
+        Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());
+        network.set_weights(theta);
 
-    // Random initial weights
-    Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());
-    network.set_weights(theta);
+        int i = 0;
+        auto func = [&](const Eigen::VectorXd& params, bool eval_grad) {
+            assert(eval_grad);
 
-    int i = 0;
-    auto func = [&](const Eigen::VectorXd& params, bool eval_grad) {
-        assert(eval_grad);
-        double f = -network.get_loss<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
-        Eigen::VectorXd grad = -network.backward<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
+            Eigen::MatrixXd samples(inputs[behav].cols(), N);
+            Eigen::MatrixXd observations(outputs[behav].cols(), N);
+            limbo::tools::rgen_int_t rgen(0, inputs[behav].rows() - 1);
 
-        if (i++ % 1 == 0)
-            std::cout << "Loss (iteration " << i - 1 << "): " << -f << std::endl;
+            for (size_t i = 0; i < N; i++) {
+                int idx = rgen.rand();
+                samples.col(i) = inputs[behav].transpose().col(idx);
+                observations.col(i) = outputs[behav].transpose().col(idx);
+            }
 
-        return limbo::opt::eval_t{f, grad};
-    };
-    limbo::opt::Adam<Params> adam;
-    Eigen::VectorXd best_theta = adam(func, theta, false);
+            network.set_weights(params);
+            double f = -network.get_loss<simple_nn::MeanSquaredError>(samples, observations);
 
-    Eigen::MatrixXd out = network.forward(inputs[behav].row(0).transpose());
-    std::cout << out << std::endl;
+            if (i++ % 1000 == 0)
+                std::cout << "Loss (iteration " << i - 1 << "): " << -f << std::endl;
+
+            // f += -params.norm();
+            Eigen::VectorXd grad = -network.backward<simple_nn::MeanSquaredError>(samples, observations);
+            // grad.array() -= 2 * params.array();
+
+            return limbo::opt::eval_t{f, grad};
+        };
+        limbo::opt::Adam<Params> adam;
+        Eigen::VectorXd best_theta = adam(func, theta, false);
+
+        double f = network.get_loss<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
+        std::cout << "Loss: " << f << std::endl;
+
+        archive.save(network.weights(),
+            path + "/nn_controller_weights_" + std::to_string(behav));
+    }
 
     return 0;
 }

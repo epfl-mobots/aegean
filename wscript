@@ -84,14 +84,14 @@ def build(bld):
     bld.program(features='cxx',
                 install_path=None,
                 source='examples/kmeans_example.cpp',
-                includes='./src',
+                includes='./src ./src/limbo/src',
                 uselib=libs,
                 target='kmeans_example')
 
     bld.program(features='cxx',
                 install_path=None,
                 source='exp/zebra/zebra_etho_gen.cpp',
-                includes='./src',
+                includes='./src ./src/limbo/src',
                 uselib=libs,
                 target='zebra_etho_gen')
 

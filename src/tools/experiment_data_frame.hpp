@@ -5,7 +5,7 @@
 #include <features/no_feature.hpp>
 #include <tools/reconstruction/no_reconstruction.hpp>
 #include <tools/mathtools.hpp>
-#include <tools/random_generator.hpp>
+#include <limbo/tools/random_generator.hpp>
 
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/for_each.hpp>

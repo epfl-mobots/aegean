@@ -56,7 +56,7 @@
 // Quick hack for definition of 'I' in <complex.h>
 #undef I
 
-#include <tools/random_generator.hpp>
+#include <limbo/tools/random_generator.hpp>
 
 namespace aegean {
     namespace defaults {

@@ -46,7 +46,6 @@ struct Params {
     };
 };
 
-template <typename CircularCorridor = polygons::CircularCorridor<Params>>
 std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_nn_sets(int argc, char** argv)
 {
     Archive archive(false);
@@ -149,7 +148,7 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
                 target.col(1) = rpblock.col(skip * 2 + 1);
 
 #ifdef USE_POLAR
-                CircularCorridor cc;
+                polygons::CircularCorridor<Params> cc;
                 target.col(0) = target.col(0).unaryExpr([&](double val) {
                     return val - cc.center().x();
                 });
@@ -162,15 +161,16 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
                     phi(k) = std::fmod(std::atan2(target(k, 1), target(k, 0)) * 180 / M_PI + 360, 360) / 360;
 
                 Eigen::MatrixXd pos_in_cc = radius;
-                pos_in_cc.unaryExpr([&](double val) {
-                    double pos_in_cc = val;
-                    if (pos_in_cc < val)
-                        pos_in_cc = 0;
-                    else if (cc.outer_radius() - val)
-                        pos_in_cc = cc.outer_radius();
-                    return pos_in_cc;
+                pos_in_cc = pos_in_cc.unaryExpr([&](double val) {
+                    double pcc = val;
+                    if (val < cc.inner_radius())
+                        val = 0;
+                    else if (val > cc.outer_radius())
+                        val = 1;
+                    else
+                        val = (val - cc.inner_radius()) * 10;
+                    return val;
                 });
-
                 target.col(0) = pos_in_cc;
                 target.col(1) = phi;
 #endif

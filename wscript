@@ -102,4 +102,11 @@ def build(bld):
                 uselib=libs,
                 target='zebra_nn_train')
 
+    bld.program(features='cxx',
+                install_path=None,
+                source='exp/zebra/zebra_virtual_sim.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src',
+                uselib=libs,
+                target='zebra_virtual_sim')
+
     bld.add_post_fun(summary)

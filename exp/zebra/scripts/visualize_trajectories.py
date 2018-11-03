@@ -24,10 +24,14 @@ if __name__ == '__main__':
     parser.add_argument('--out-dir', '-o', type=str,
                         help='Output directory name',
                         required=True)
+    parser.add_argument('--virtual', type=str,
+                        help='Path to virtual trajectories')
     args = parser.parse_args()
 
     traj = np.loadtxt(args.positions)
     tsteps = traj.shape[0]
+    if args.virtual:
+        vtraj = np.loadtxt(args.virtual)
 
     iradius = 0.19
     oradius = 0.29
@@ -81,6 +85,13 @@ if __name__ == '__main__':
             plt.text(0.4, 0.0, text, horizontalalignment='left',
                      verticalalignment='center', transform=ax.transAxes)
             fig.patch.set_visible(False)
+
+        if args.virtual:
+            x = vtraj[i, 0]
+            y = vtraj[i, 1]
+            plt.scatter(x, y, marker='x',
+                        label='Virtual agent ' + str(
+                            ('{0:.2f}'.format(np.asscalar(x)), '{0:.2f}'.format(np.asscalar(y)))))
 
         ax.axis('off')
         ax.invert_yaxis()

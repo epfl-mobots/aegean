@@ -56,8 +56,8 @@ if __name__ == '__main__':
 
         # drawing the circular setup
         radius = (iradius, oradius)
-        plt.plot([center[0]], [center[1]], ls='none',
-                 marker='o', color='black', label='Origin ' + str(center))
+        # plt.plot([center[0]], [center[1]], ls='none',
+        #  marker='o', color='black', label='Origin ' + str(center))
         inner = plt.Circle(
             center, radius[0], color='black', fill=False)
         outer = plt.Circle(
@@ -82,7 +82,7 @@ if __name__ == '__main__':
                 if pair[0].lower() in ['interindividual']:
                     text += pair[0].capitalize() + ': ' + str('{0:.2f}'.format(
                         np.asscalar(pair[1][i]) * 360)) + ' deg\n'
-            plt.text(0.4, 0.0, text, horizontalalignment='left',
+            plt.text(0.4, 0.1, text, horizontalalignment='left',
                      verticalalignment='center', transform=ax.transAxes)
             fig.patch.set_visible(False)
 

@@ -4,6 +4,12 @@
 #include <tools/archive.hpp>
 #include <tools/mathtools.hpp>
 
+#include <tools/polygons/circular_corridor.hpp>
+#include <tools/reconstruction/cspace.hpp>
+
+#include <features/alignment.hpp>
+#include <features/inter_individual_distance.hpp>
+
 #include <Eigen/Core>
 #include <iostream>
 #include <vector>
@@ -126,6 +132,23 @@ int main(int argc, char** argv)
 
     archive.save(predictions,
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx));
+
+    Eigen::MatrixXd extended_traj(positions.rows(), positions.cols() + rolled.cols());
+    extended_traj << positions, rolled;
+    archive.save(predictions,
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_positions");
+
+    using distance_func_t
+        = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+    features::InterIndividualDistance<distance_func_t> iid;
+    iid(positions, fps / static_cast<float>(centroids));
+    archive.save(iid.get(),
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_interindividual");
+
+    features::Alignment align;
+    align(positions, fps / static_cast<float>(centroids));
+    archive.save(align.get(),
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_alignment");
 
     return 0;
 }

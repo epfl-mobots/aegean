@@ -67,6 +67,12 @@ namespace aegean {
                 _clusterer.save(_archive);
 
                 for (uint i = 0; i < _segment_idcs.size() - 1; ++i) {
+                    Eigen::MatrixXd feautre_matrix = _data.block(_segment_idcs[i], 0, _segment_idcs[i + 1] - _segment_idcs[i], _data.cols());
+                    _archive.save(feautre_matrix,
+                        "seg_" + std::to_string(i) + "_feature_matrix");
+                }
+
+                for (uint i = 0; i < _segment_idcs.size() - 1; ++i) {
                     Eigen::VectorXi seg_labels = _labels.block(_segment_idcs[i], 0, _segment_idcs[i + 1] - _segment_idcs[i], _labels.cols());
                     _archive.save(seg_labels,
                         "seg_" + std::to_string(i) + "_labels");

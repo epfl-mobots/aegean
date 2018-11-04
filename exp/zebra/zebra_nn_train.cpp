@@ -26,7 +26,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 5000);
+        BO_PARAM(int, iterations, 10000);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate
@@ -120,7 +120,11 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
     std::vector<Eigen::MatrixXd> inputs(behaviours), outputs(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
         inputs[b] = Eigen::MatrixXd::Zero(sizes[b], 4 * (num_individuals - 1)); // x y vx vy
+#ifdef USE_POLAR
+        outputs[b] = Eigen::MatrixXd::Zero(sizes[b], 3); // r phi.cos phi.sin
+#else
         outputs[b] = Eigen::MatrixXd::Zero(sizes[b], 2); // x y
+#endif
     }
 
     std::vector<uint> cur_row(behaviours, 0);
@@ -143,36 +147,40 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
             Eigen::MatrixXd vblock = velocities.block(idx, 0, aggregate_window - 1, velocities.cols());
 
             for (uint skip = 0, ind = 0; ind < num_individuals; ++skip, ++ind) {
-                Eigen::MatrixXd target(rpblock.rows(), 2);
-                target.col(0) = rpblock.col(skip * 2);
-                target.col(1) = rpblock.col(skip * 2 + 1);
 
 #ifdef USE_POLAR
+                Eigen::MatrixXd target(rpblock.rows(), 3);
+
+                Eigen::MatrixXd pos(rpblock.rows(), 2);
+                pos.col(0) = rpblock.col(skip * 2);
+                pos.col(1) = rpblock.col(skip * 2 + 1);
+
                 polygons::CircularCorridor<Params> cc;
-                target.col(0) = target.col(0).unaryExpr([&](double val) {
-                    return val - cc.center().x();
-                });
-                target.col(1) = target.col(1).unaryExpr([&](double val) {
-                    return val - cc.center().y();
-                });
-                Eigen::MatrixXd radius = target.rowwise().norm();
+                pos.col(0).array() -= cc.center().x();
+                pos.col(1).array() -= cc.center().y();
+
+                Eigen::MatrixXd radius = pos.rowwise().norm();
                 Eigen::MatrixXd phi = Eigen::MatrixXd(target.rows(), 1);
                 for (uint k = 0; k < phi.rows(); ++k)
-                    phi(k) = std::fmod(std::atan2(target(k, 1), target(k, 0)) * 180 / M_PI + 360, 360) / 360;
+                    phi(k) = std::atan2(pos(k, 1), pos(k, 0));
 
                 Eigen::MatrixXd pos_in_cc = radius;
                 pos_in_cc = pos_in_cc.unaryExpr([&](double val) {
-                    double pcc = val;
                     if (val < cc.inner_radius())
-                        val = 0;
+                        val = -1;
                     else if (val > cc.outer_radius())
                         val = 1;
                     else
-                        val = (val - cc.inner_radius()) * 10;
+                        val = 2 * ((val - cc.inner_radius()) / (cc.outer_radius() - cc.inner_radius())) - 1;
                     return val;
                 });
                 target.col(0) = pos_in_cc;
-                target.col(1) = phi;
+                target.col(1) = phi.array().cos();
+                target.col(2) = phi.array().sin();
+#else
+                Eigen::MatrixXd target(rpblock.rows(), 2);
+                target.col(0) = rpblock.col(skip * 2);
+                target.col(1) = rpblock.col(skip * 2 + 1);
 #endif
 
                 std::vector<uint> rm = {skip * 2, skip * 2 + 1};
@@ -257,9 +265,9 @@ int main(int argc, char** argv)
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
         simple_nn::NeuralNet network;
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(inputs[behav].cols(), 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, outputs[behav].cols());
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(inputs[behav].cols(), 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, outputs[behav].cols());
 
         // Random initial weights
         Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());

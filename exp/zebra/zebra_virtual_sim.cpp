@@ -82,10 +82,10 @@ int main(int argc, char** argv)
 
     std::vector<simple_nn::NeuralNet> nn(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(
             positions.cols() - 2 + velocities.cols() - 2, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Sigmoid>>(100, 2); // pos_in_cc phi
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 3); // pos_in_cc phi.cos phi.sin
         Eigen::MatrixXd weights;
         archive.load(weights, path + "/nn_controller_weights_" + std::to_string(b) + ".dat");
         nn[b].set_weights(weights);
@@ -100,17 +100,13 @@ int main(int argc, char** argv)
         Eigen::MatrixXd sample(1, positions.cols() + velocities.cols());
         sample << positions.row(i), velocities.row(i);
         uint label_idx = static_cast<int>(i / aggregate_window);
-        predictions.row(i) = nn[labels(label_idx)].forward(sample.transpose()).transpose();
-#ifdef USE_POLAR
+        Eigen::MatrixXd pred = nn[labels(label_idx)].forward(sample.transpose()).transpose();
+
         polygons::CircularCorridor<Params> cc;
-        double radius = predictions(i, 0) / 10 + cc.inner_radius();
-        double phi = predictions(i, 1) * 360.;
-        if (phi > 180)
-            phi -= 360;
-        phi *= M_PI / 180.;
+        double radius = (pred(0) + 1) / (2 * 10) + cc.inner_radius();
+        double phi = std::atan2(pred(2), pred(1));
         predictions(i, 0) = radius * std::cos(phi) + cc.center().x();
         predictions(i, 1) = radius * std::sin(phi) + cc.center().y();
-#endif
     }
 
     Eigen::MatrixXd rolled = tools::rollMatrix(predictions, -1);
@@ -149,6 +145,11 @@ int main(int argc, char** argv)
     align(positions, fps / static_cast<float>(centroids));
     archive.save(align.get(),
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_alignment");
+
+    Eigen::MatrixXd feature_matrix(iid.get().rows(), iid.get().cols() + align.get().cols());
+    feature_matrix << iid.get(), align.get();
+    archive.save(feature_matrix,
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_feature_matrix");
 
     return 0;
 }

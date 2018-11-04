@@ -94,8 +94,7 @@ if __name__ == '__main__':
             x = traj[i, j*2]
             y = traj[i, j*2+1]
             plt.scatter(x, y, marker='.',
-                        label='Individual ' + str(inum) + ' ' + str(
-                            ('{0:.2f}'.format(np.asscalar(x)), '{0:.2f}'.format(np.asscalar(y)))))
+                        label='Individual ' + str(inum))
 
             text = get_text(feature_list)
             text = 'Living agents\n' + text
@@ -114,12 +113,11 @@ if __name__ == '__main__':
             x = vtraj[i, 0]
             y = vtraj[i, 1]
             plt.scatter(x, y, marker='x',
-                        label='Virtual agent ' + str(
-                            ('{0:.2f}'.format(np.asscalar(x)), '{0:.2f}'.format(np.asscalar(y)))))
+                        label='Virtual agent')
 
         ax.axis('off')
         ax.invert_yaxis()
-        plt.legend(bbox_to_anchor=(1.1, 1.04),
+        plt.legend(bbox_to_anchor=(1.1, 0.95),
                    bbox_transform=ax.transAxes)
         plt.savefig(
             str(png_fname) + '.png',

@@ -93,4 +93,3 @@ if __name__ == '__main__':
                 frame_name = str(tstep * args.behaviour_duration + l).zfill(6)
                 path = out_path + '/' + frame_name + '.dot'
                 nx.nx_pydot.write_dot(g_copy, path)
-        break

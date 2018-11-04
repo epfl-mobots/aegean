@@ -44,7 +44,6 @@ if __name__ == '__main__':
     assert len(tp_files) == len(bp_files) and len(tp_files) == len(labels)
 
     for i in range(len(tp_files)):
-        print(tp_files[i], bp_files[i], labels[i])
         transition_probs = np.loadtxt(tp_files[i])
         behaviour_probs = np.loadtxt(bp_files[i])
         lbls = np.loadtxt(labels[i], dtype=np.int32)

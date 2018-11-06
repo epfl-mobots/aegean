@@ -138,17 +138,26 @@ int main(int argc, char** argv)
         = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
     features::InterIndividualDistance<distance_func_t> iid;
     iid(positions, fps / static_cast<float>(centroids));
-    archive.save(iid.get(),
-        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_interindividual");
 
     features::Alignment align;
     align(positions, fps / static_cast<float>(centroids));
-    archive.save(align.get(),
-        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_alignment");
 
     Eigen::MatrixXd feature_matrix(iid.get().rows(), iid.get().cols() + align.get().cols());
     feature_matrix << iid.get(), align.get();
-    archive.save(feature_matrix,
+
+    Eigen::MatrixXd avg_fm;
+    for (uint i = 0; i < feature_matrix.rows(); i += aggregate_window) {
+        avg_fm.conservativeResize(avg_fm.rows() + 1, feature_matrix.cols());
+        avg_fm.row(avg_fm.rows() - 1) = feature_matrix.block(i, 0, aggregate_window, feature_matrix.cols()).colwise().mean();
+    }
+
+    archive.save(avg_fm.col(0),
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_interindividual");
+
+    archive.save(avg_fm.col(1),
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_alignment");
+
+    archive.save(avg_fm,
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_feature_matrix");
 
     return 0;

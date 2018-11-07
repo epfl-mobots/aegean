@@ -14,7 +14,7 @@ def get_labels(centroids, fm):
         c = centroids[r, :]
         diff = fm - c
         distances[:, r] = np.linalg.norm(diff, axis=1)
-    labels = np.argmax(distances, axis=1)
+    labels = np.argmin(distances, axis=1)
     return labels
 
 
@@ -39,11 +39,12 @@ if __name__ == '__main__':
 
     lbls1 = get_labels(centroids, fm1)
     lbls2 = get_labels(centroids, fm2)
+    assert len(lbls1) == len(lbls2), 'Dimension don\'t match'
 
     count = 0
-    for i in range(len(lbls1) - 1):
+    for i in range(len(lbls1)-1):
         if lbls1[i] == lbls2[i+1]:
             count += 1
-    print(count / len(lbls1))
+    print(count / (len(lbls1)-1))
     fm_error = fm1 - fm2
     print(np.linalg.norm(fm_error, axis=0))

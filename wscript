@@ -104,6 +104,13 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
+                source='exp/zebra/zebra_mixed_sim.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src',
+                uselib=libs,
+                target='zebra_mixed_sim')
+
+    bld.program(features='cxx',
+                install_path=None,
                 source='exp/zebra/zebra_virtual_sim.cpp',
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs,

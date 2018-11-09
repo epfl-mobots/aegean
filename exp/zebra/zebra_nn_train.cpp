@@ -281,7 +281,7 @@ int main(int argc, char** argv)
             Eigen::MatrixXd observations(outputs[behav].cols(), N);
             limbo::tools::rgen_int_t rgen(0, inputs[behav].rows() - 1);
 
-            for (size_t i = 0; i < N; i++) {
+            for (int i = 0; i < N; i++) {
                 int idx = rgen.rand();
                 samples.col(i) = inputs[behav].transpose().col(idx);
                 observations.col(i) = outputs[behav].transpose().col(idx);

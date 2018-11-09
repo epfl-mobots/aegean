@@ -321,7 +321,7 @@ int main(int argc, char** argv)
         Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());
         network.set_weights(theta);
 
-        int i = 0;
+        int epoch_count = 0;
         auto func = [&](const Eigen::VectorXd& params, bool eval_grad) {
             assert(eval_grad);
 
@@ -345,8 +345,8 @@ int main(int argc, char** argv)
             network.set_weights(params);
             double f = -network.get_loss<aegean::SmoothTrajectory>(samples, observations);
 
-            if (i++ % 1000 == 0)
-                std::cout << "Loss (iteration " << i - 1 << "): " << -f << std::endl;
+            if (epoch_count++ % 1000 == 0)
+                std::cout << "Loss (iteration " << epoch_count - 1 << "): " << -f << std::endl;
 
             // f += -params.norm();
             Eigen::VectorXd grad = -network.backward<aegean::SmoothTrajectory>(samples, observations);

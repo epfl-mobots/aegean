@@ -97,10 +97,10 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
-                source='exp/zebra/zebra_nn_train.cpp',
+                source='exp/zebra/zebra_nn_train_with_smoothtraj.cpp',
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs,
-                target='zebra_nn_train')
+                target='zebra_nn_train_with_smoothtraj')
 
     bld.program(features='cxx',
                 install_path=None,

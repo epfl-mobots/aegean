@@ -259,8 +259,7 @@ namespace aegean {
             uint split = y_d.rows() / 2;
             Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
             Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
-            return 0.8 * simple_nn::MeanSquaredError::f(y, desired)
-                + 0.2 * simple_nn::MeanSquaredError::f(desired, desired_prev);
+            return simple_nn::MeanSquaredError::f(y, desired);
         }
 
         static Eigen::MatrixXd df(const Eigen::MatrixXd& y, const Eigen::MatrixXd& y_d)
@@ -268,8 +267,8 @@ namespace aegean {
             uint split = y_d.rows() / 2;
             Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
             Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
-            return 0.8 * simple_nn::MeanSquaredError::df(y, desired)
-                + 0.2 * simple_nn::MeanSquaredError::df(desired, desired_prev);
+            return 1. * simple_nn::MeanSquaredError::df(y, desired)
+                + 10. * simple_nn::MeanSquaredError::df(desired, desired_prev);
         }
     };
 } // namespace aegean

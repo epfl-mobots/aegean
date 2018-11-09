@@ -251,6 +251,28 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> load(int a
     return std::make_pair(inputs, outputs);
 }
 
+namespace aegean {
+    struct SmoothTrajectory : public simple_nn::MeanSquaredError {
+    public:
+        static double f(const Eigen::MatrixXd& y, const Eigen::MatrixXd& y_d)
+        {
+            uint split = y_d.rows() / 2;
+            Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
+            Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
+            return simple_nn::MeanSquaredError::f(y, desired);
+        }
+
+        static Eigen::MatrixXd df(const Eigen::MatrixXd& y, const Eigen::MatrixXd& y_d)
+        {
+            uint split = y_d.rows() / 2;
+            Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
+            Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
+            return 1. * simple_nn::MeanSquaredError::df(y, desired)
+                + 10. * simple_nn::MeanSquaredError::df(desired, desired_prev);
+        }
+    };
+} // namespace aegean
+
 int main(int argc, char** argv)
 {
     std::srand(std::time(NULL));
@@ -261,6 +283,32 @@ int main(int argc, char** argv)
     std::tie(inputs, outputs) = load(argc, argv);
     std::string path(argv[1]);
     Archive archive(false);
+
+    uint centroids;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/num_centroids.dat");
+        ifs >> centroids;
+        ifs.close();
+    }
+
+    uint fps;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/fps.dat");
+        ifs >> fps;
+        ifs.close();
+    }
+
+    uint window_in_seconds;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/window_in_seconds.dat");
+        ifs >> window_in_seconds;
+        ifs.close();
+    }
+
+    uint aggregate_window = window_in_seconds * (fps / centroids);
 
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
@@ -278,23 +326,30 @@ int main(int argc, char** argv)
             assert(eval_grad);
 
             Eigen::MatrixXd samples(inputs[behav].cols(), N);
-            Eigen::MatrixXd observations(outputs[behav].cols(), N);
+            Eigen::MatrixXd observations(outputs[behav].cols() * 2, N);
+
             limbo::tools::rgen_int_t rgen(0, inputs[behav].rows() - 1);
 
             for (int i = 0; i < N; i++) {
-                int idx = rgen.rand();
+                int idx = -1;
+                while (idx < 0) {
+                    idx = rgen.rand();
+                    if ((idx % (aggregate_window - 1)) == 0)
+                        idx = -1;
+                }
                 samples.col(i) = inputs[behav].transpose().col(idx);
-                observations.col(i) = outputs[behav].transpose().col(idx);
+                observations.col(i) << outputs[behav].transpose().col(idx),
+                    outputs[behav].transpose().col(idx - 1);
             }
 
             network.set_weights(params);
-            double f = -network.get_loss<simple_nn::MeanSquaredError>(samples, observations);
+            double f = -network.get_loss<aegean::SmoothTrajectory>(samples, observations);
 
             if (epoch_count++ % 1000 == 0)
                 std::cout << "Loss (iteration " << epoch_count - 1 << "): " << -f << std::endl;
 
             // f += -params.norm();
-            Eigen::VectorXd grad = -network.backward<simple_nn::MeanSquaredError>(samples, observations);
+            Eigen::VectorXd grad = -network.backward<aegean::SmoothTrajectory>(samples, observations);
             // grad.array() -= 2 * params.array();
 
             return limbo::opt::eval_t{f, grad};
@@ -302,7 +357,15 @@ int main(int argc, char** argv)
         limbo::opt::Adam<Params> adam;
         Eigen::VectorXd best_theta = adam(func, theta, false);
 
-        double f = network.get_loss<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
+        int skip = outputs[behav].cols() / (aggregate_window - 1);
+        Eigen::MatrixXd e_outputs(outputs[behav].rows() - skip, outputs[behav].cols() * 2);
+        for (uint i = 0; i < outputs[behav].rows(); ++i) {
+            if ((i % (aggregate_window - 1)) == 0)
+                continue;
+            e_outputs.row(i) << outputs[behav].row(i), outputs[behav].row(i - 1);
+        }
+
+        double f = network.get_loss<aegean::SmoothTrajectory>(inputs[behav].transpose(), e_outputs.transpose());
         std::cout << "Loss: " << f << std::endl;
 
         archive.save(network.weights(),

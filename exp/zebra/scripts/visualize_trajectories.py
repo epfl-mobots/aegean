@@ -31,14 +31,14 @@ if __name__ == '__main__':
     parser.add_argument('--positions', '-p', type=str,
                         help='Path to the trajectory file',
                         required=True)
-    parser.add_argument('--features', '-f', nargs='+', type=str,
+    parser.add_argument('--features', '-f', nargs='+', type=str, default='',
                         help='List of features to load')
     parser.add_argument('--out-dir', '-o', type=str,
                         help='Output directory name',
                         required=True)
     parser.add_argument('--virtual', type=str,
                         help='Path to virtual trajectories')
-    parser.add_argument('--virtual-features', '-vf', nargs='+', type=str,
+    parser.add_argument('--virtual-features', '-vf', nargs='+', type=str, default='',
                         help='List of virtual features to load')
     args = parser.parse_args()
 

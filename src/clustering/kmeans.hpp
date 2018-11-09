@@ -132,6 +132,9 @@ namespace aegean {
         template <typename InitFunc = defaults::KMeansPlusPlus>
         class KMeans {
         public:
+            KMeans() {}
+            KMeans(const Eigen::MatrixXd& centroids) { _centroids = centroids; }
+
             std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K, const int max_iter = 100)
             {
                 _centroids = InitFunc()(data, K);

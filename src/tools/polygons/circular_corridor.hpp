@@ -51,7 +51,7 @@ namespace aegean {
                         return true;
                 }
 
-                double distance_to_inner_wall(const Point& p)
+                double distance_to_inner_wall(const Point& p) const
                 {
                     Eigen::Vector2d pt(2);
                     pt(0) = p.x() - _center.x();
@@ -59,12 +59,23 @@ namespace aegean {
                     return pt.norm() - _inner_r;
                 }
 
-                double distance_to_outer_wall(const Point& p)
+                double distance_to_outer_wall(const Point& p) const
                 {
                     Eigen::Vector2d pt(2);
                     pt(0) = p.x() - _center.x();
                     pt(1) = p.y() - _center.y();
                     return _outer_r - pt.norm();
+                }
+
+                bool is_valid(const Point& p) const
+                {
+                    double corridor_len = _outer_r - _inner_r;
+                    if ((distance_to_inner_wall(p) <= corridor_len)
+                        && (distance_to_outer_wall(p) <= corridor_len)) {
+                        return true;
+                    }
+                    else
+                        return false;
                 }
 
                 double inner_radius() const { return _inner_r; }

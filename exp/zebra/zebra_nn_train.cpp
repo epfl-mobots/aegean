@@ -358,7 +358,6 @@ int main(int argc, char** argv)
                 observations.col(i) << outputs[behav].transpose().col(idx),
                     outputs[behav].transpose().col(idx - 1);
             }
-
 #endif
 
             network.set_weights(params);
@@ -366,7 +365,7 @@ int main(int argc, char** argv)
             double f = -network.get_loss<loss_t>(samples, observations);
 
             // f += -params.norm();
-            Eigen::VectorXd grad = -network.backward<simple_nn::MeanSquaredError>(samples, observations);
+            Eigen::VectorXd grad = -network.backward<loss_t>(samples, observations);
             // grad.array() -= 2 * params.array();
 
             if (epoch_count++ % 1000 == 0)
@@ -389,7 +388,7 @@ int main(int argc, char** argv)
             e_outputs.row(i) << outputs[behav].row(i), outputs[behav].row(i - 1);
         }
 
-        double f = network.get_loss<aegean::SmoothTrajectory>(inputs[behav].transpose(), e_outputs.transpose());
+        double f = network.get_loss<loss_t>(inputs[behav].transpose(), e_outputs.transpose());
         std::cout << "Loss: " << f << std::endl;
 #endif
 

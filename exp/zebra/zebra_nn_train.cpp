@@ -251,6 +251,34 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> load(int a
     return std::make_pair(inputs, outputs);
 }
 
+namespace aegean {
+    struct SmoothTrajectory : public simple_nn::MeanSquaredError {
+    public:
+        static double f(const Eigen::MatrixXd& y, const Eigen::MatrixXd& y_d)
+        {
+            uint split = y_d.rows() / 2;
+            Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
+            Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
+            return simple_nn::MeanSquaredError::f(y, desired);
+        }
+
+        static Eigen::MatrixXd df(const Eigen::MatrixXd& y, const Eigen::MatrixXd& y_d)
+        {
+            uint split = y_d.rows() / 2;
+            Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
+            Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
+            return 0.3 * simple_nn::MeanSquaredError::df(y, desired)
+                + 0.7 * simple_nn::MeanSquaredError::df(y, desired_prev);
+        }
+    };
+} // namespace aegean
+
+#ifndef SMOOTH_LOSS
+using loss_t = simple_nn::MeanSquaredError;
+#else
+using loss_t = aegean::SmoothTrajectory;
+#endif
+
 int main(int argc, char** argv)
 {
     std::srand(std::time(NULL));
@@ -261,6 +289,34 @@ int main(int argc, char** argv)
     std::tie(inputs, outputs) = load(argc, argv);
     std::string path(argv[1]);
     Archive archive(false);
+
+#ifdef SMOOTH_LOSS
+    uint centroids;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/num_centroids.dat");
+        ifs >> centroids;
+        ifs.close();
+    }
+
+    uint fps;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/fps.dat");
+        ifs >> fps;
+        ifs.close();
+    }
+
+    uint window_in_seconds;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/window_in_seconds.dat");
+        ifs >> window_in_seconds;
+        ifs.close();
+    }
+
+    uint aggregate_window = window_in_seconds * (fps / centroids);
+#endif
 
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
@@ -278,32 +334,64 @@ int main(int argc, char** argv)
             assert(eval_grad);
 
             Eigen::MatrixXd samples(inputs[behav].cols(), N);
-            Eigen::MatrixXd observations(outputs[behav].cols(), N);
             limbo::tools::rgen_int_t rgen(0, inputs[behav].rows() - 1);
+
+#ifndef SMOOTH_LOSS
+            Eigen::MatrixXd observations(outputs[behav].cols(), N);
 
             for (int i = 0; i < N; i++) {
                 int idx = rgen.rand();
                 samples.col(i) = inputs[behav].transpose().col(idx);
                 observations.col(i) = outputs[behav].transpose().col(idx);
             }
+#else
+            Eigen::MatrixXd observations(outputs[behav].cols() * 2, N);
+
+            for (int i = 0; i < N; i++) {
+                int idx = -1;
+                while (idx < 0) {
+                    idx = rgen.rand();
+                    if ((idx % (aggregate_window - 1)) == 0)
+                        idx = -1;
+                }
+                samples.col(i) = inputs[behav].transpose().col(idx);
+                observations.col(i) << outputs[behav].transpose().col(idx),
+                    outputs[behav].transpose().col(idx - 1);
+            }
+
+#endif
 
             network.set_weights(params);
-            double f = -network.get_loss<simple_nn::MeanSquaredError>(samples, observations);
 
-            if (epoch_count++ % 1000 == 0)
-                std::cout << "Loss (iteration " << epoch_count - 1 << "): " << -f << std::endl;
+            double f = -network.get_loss<loss_t>(samples, observations);
 
             // f += -params.norm();
             Eigen::VectorXd grad = -network.backward<simple_nn::MeanSquaredError>(samples, observations);
             // grad.array() -= 2 * params.array();
+
+            if (epoch_count++ % 1000 == 0)
+                std::cout << "Loss (iteration " << epoch_count - 1 << "): " << -f << std::endl;
 
             return limbo::opt::eval_t{f, grad};
         };
         limbo::opt::Adam<Params> adam;
         Eigen::VectorXd best_theta = adam(func, theta, false);
 
-        double f = network.get_loss<simple_nn::MeanSquaredError>(inputs[behav].transpose(), outputs[behav].transpose());
+#ifndef SMOOTH_LOSS
+        double f = network.get_loss<loss_t>(inputs[behav].transpose(), outputs[behav].transpose());
         std::cout << "Loss: " << f << std::endl;
+#else
+        int skip = outputs[behav].cols() / (aggregate_window - 1);
+        Eigen::MatrixXd e_outputs(outputs[behav].rows() - skip, outputs[behav].cols() * 2);
+        for (uint i = 0; i < outputs[behav].rows(); ++i) {
+            if ((i % (aggregate_window - 1)) == 0)
+                continue;
+            e_outputs.row(i) << outputs[behav].row(i), outputs[behav].row(i - 1);
+        }
+
+        double f = network.get_loss<aegean::SmoothTrajectory>(inputs[behav].transpose(), e_outputs.transpose());
+        std::cout << "Loss: " << f << std::endl;
+#endif
 
         archive.save(network.weights(),
             path + "/nn_controller_weights_" + std::to_string(behav));

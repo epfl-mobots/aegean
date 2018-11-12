@@ -104,10 +104,11 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
-                source='exp/zebra/zebra_nn_train_with_smoothtraj.cpp',
+                defines=['SMOOTH_LOSS'],
+                source='exp/zebra/zebra_nn_train.cpp',
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs,
-                target='zebra_nn_train_with_smoothtraj')
+                target='zebra_nn_train_smooth')
 
     bld.program(features='cxx',
                 install_path=None,

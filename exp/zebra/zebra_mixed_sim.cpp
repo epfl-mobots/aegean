@@ -137,10 +137,10 @@ int main(int argc, char** argv)
     using distance_func_t
         = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
     features::InterIndividualDistance<distance_func_t> iid;
-    iid(positions, static_cast<float>(centroids) / fps);
+    iid(extended_traj, static_cast<float>(centroids) / fps);
 
     features::Alignment align;
-    align(positions, static_cast<float>(centroids) / fps);
+    align(extended_traj, static_cast<float>(centroids) / fps);
 
     Eigen::MatrixXd feature_matrix(iid.get().rows(), iid.get().cols() + align.get().cols());
     feature_matrix << iid.get(), align.get();

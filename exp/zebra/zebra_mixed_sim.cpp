@@ -111,7 +111,7 @@ int main(int argc, char** argv)
 
     Eigen::MatrixXd rolled = tools::rollMatrix(predictions, -1);
     rolled.row(rolled.rows() - 1) = removed.row(rolled.rows() - 1);
-    double error = (removed - predictions).rowwise().norm().mean();
+    double error = (removed - rolled).rowwise().norm().mean();
 
     {
         std::cout << "Trajectory mean distance: " << error << std::endl;
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
 
     Eigen::MatrixXd extended_traj(positions.rows(), positions.cols() + rolled.cols());
     extended_traj << positions, rolled;
-    archive.save(predictions,
+    archive.save(extended_traj,
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_positions");
 
     using distance_func_t

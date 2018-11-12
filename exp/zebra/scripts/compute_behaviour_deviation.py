@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     count = 0
     for i in range(len(lbls1)-1):
-        if lbls1[i] == lbls2[i+1]:
+        if lbls1[i] == lbls2[i]:
             count += 1
     print(count / (len(lbls1)-1))
     fm_error = fm1 - fm2

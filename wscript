@@ -112,6 +112,14 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
+                defines=['USE_ORIGINAL_LABELS'],
+                source='exp/zebra/zebra_mixed_sim.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src',
+                uselib=libs,
+                target='zebra_mixed_sim_original_labels')
+
+    bld.program(features='cxx',
+                install_path=None,
                 source='exp/zebra/zebra_mixed_sim.cpp',
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs,

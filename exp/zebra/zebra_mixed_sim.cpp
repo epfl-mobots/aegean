@@ -19,6 +19,15 @@
 using namespace aegean;
 using namespace tools;
 
+#ifndef USE_ORIGINAL_LABELS
+#include <features/alignment.hpp>
+#include <features/inter_individual_distance.hpp>
+#include <clustering/kmeans.hpp>
+
+using namespace clustering;
+
+#endif
+
 #define USE_POLAR
 
 struct Params {
@@ -91,6 +100,15 @@ int main(int argc, char** argv)
         nn[b].set_weights(weights);
     }
 
+#ifndef USE_ORIGINAL_LABELS
+    Eigen::MatrixXd c;
+    archive.load(c, path + "/centroids_kmeans.dat");
+    KMeans<> km(c);
+
+    Eigen::MatrixXd e_positions(positions.rows(), positions.cols());
+    e_positions.block(0, 0, e_positions.rows(), e_positions.cols()) = positions;
+#endif
+
     std::vector<uint> rm = {static_cast<uint>(exclude_idx * 2), static_cast<uint>(exclude_idx * 2 + 1)};
     tools::removeCols(positions, rm);
     tools::removeCols(velocities, rm);
@@ -99,14 +117,42 @@ int main(int argc, char** argv)
     for (uint i = 0; i < positions.rows(); ++i) {
         Eigen::MatrixXd sample(1, positions.cols() + velocities.cols());
         sample << positions.row(i), velocities.row(i);
+        Eigen::MatrixXd pred;
+#ifdef USE_ORIGINAL_LABELS
         uint label_idx = static_cast<int>(i / aggregate_window);
-        Eigen::MatrixXd pred = nn[labels(label_idx)].forward(sample.transpose()).transpose();
+#else
+        Eigen::MatrixXd pos_block = e_positions.block(0, 0, i + 1, e_positions.cols());
+        using distance_func_t
+            = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+        features::InterIndividualDistance<distance_func_t> iid;
+        features::Alignment align;
+        iid(e_positions.row(i), static_cast<float>(centroids) / fps);
+        align(pos_block, static_cast<float>(centroids) / fps);
+        Eigen::MatrixXd features(1, 2);
+        uint row_idx;
+        (i == 0) ? row_idx = 0 : row_idx = align.get().rows() - 2;
+        features << iid.get()(0), align.get()(row_idx);
+
+        uint label_idx;
+        if (i + 1 == positions.rows())
+            label_idx = static_cast<int>(i / aggregate_window);
+        else
+            label_idx = km.predict(features)(0);
+#endif
+        pred = nn[labels(label_idx)].forward(sample.transpose()).transpose();
 
         polygons::CircularCorridor<Params> cc;
         double radius = (pred(0) + 1) / (2 * 10) + cc.inner_radius();
         double phi = std::atan2(pred(2), pred(1));
         predictions(i, 0) = radius * std::cos(phi) + cc.center().x();
         predictions(i, 1) = radius * std::sin(phi) + cc.center().y();
+
+#ifndef USE_ORIGINAL_LABELS
+        if (i + 1 == positions.rows())
+            continue;
+        e_positions(i + 1, e_positions.cols() - 2) = predictions(i, 0);
+        e_positions(i + 1, e_positions.cols() - 1) = predictions(i, 1);
+#endif
     }
 
     Eigen::MatrixXd rolled = tools::rollMatrix(predictions, -1);

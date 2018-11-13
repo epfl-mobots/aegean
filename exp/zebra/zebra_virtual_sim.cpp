@@ -122,12 +122,6 @@ int main(int argc, char** argv)
         sample << iid.get()(0), align.get()(0);
         uint label = km.predict(sample)(0);
 
-        // std::cout << sample << std::endl;
-        // std::cout << label << "\n --" << std::endl;
-        // std::cout << positions.row(i) << std::endl;
-        // std::cout << velocities.row(i) << std::endl
-        //           << std::endl;
-
         std::vector<uint> shuffled_idcs = ind_idcs;
         std::random_shuffle(shuffled_idcs.begin(), shuffled_idcs.end());
         for (const uint focal_idx : shuffled_idcs) {
@@ -143,6 +137,7 @@ int main(int argc, char** argv)
                 }
             }
 
+            // TODO: introduce ethogram transition probabilities
             Eigen::MatrixXd pred;
             if (rgend.rand() > 0.84)
                 pred = nn[rgeni.rand()].forward(input);

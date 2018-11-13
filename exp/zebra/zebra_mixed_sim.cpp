@@ -105,8 +105,8 @@ int main(int argc, char** argv)
     archive.load(c, path + "/centroids_kmeans.dat");
     KMeans<> km(c);
 
-    Eigen::MatrixXd e_positions(positions.rows(), positions.cols());
-    e_positions.block(0, 0, e_positions.rows(), e_positions.cols()) = positions;
+    Eigen::MatrixXd e_positions(positions.rows() + 1, positions.cols());
+    e_positions.block(0, 0, positions.rows(), positions.cols()) = positions;
 #endif
 
     std::vector<uint> rm = {static_cast<uint>(exclude_idx * 2), static_cast<uint>(exclude_idx * 2 + 1)};
@@ -121,23 +121,29 @@ int main(int argc, char** argv)
 #ifdef USE_ORIGINAL_LABELS
         uint label_idx = static_cast<int>(i / aggregate_window);
 #else
-        Eigen::MatrixXd pos_block = e_positions.block(0, 0, i + 1, e_positions.cols());
-        using distance_func_t
-            = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
-        features::InterIndividualDistance<distance_func_t> iid;
-        features::Alignment align;
-        iid(e_positions.row(i), static_cast<float>(centroids) / fps);
-        align(pos_block, static_cast<float>(centroids) / fps);
-        Eigen::MatrixXd features(1, 2);
-        uint row_idx;
-        (i == 0) ? row_idx = 0 : row_idx = align.get().rows() - 2;
-        features << iid.get()(0), align.get()(row_idx);
-
         uint label_idx;
         if (i + 1 == positions.rows())
             label_idx = static_cast<int>(i / aggregate_window);
-        else
+        else {
+            Eigen::MatrixXd pos_block;
+            if (i > 0)
+                pos_block = e_positions.block(i - 1, 0, 2, e_positions.cols());
+            else
+                pos_block = e_positions.block(i, 0, 2, e_positions.cols());
+
+            using distance_func_t
+                = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+            features::InterIndividualDistance<distance_func_t> iid;
+            features::Alignment align;
+            iid(e_positions.row(i), static_cast<float>(centroids) / fps);
+            align(pos_block, static_cast<float>(centroids) / fps);
+
+            Eigen::MatrixXd features(1, 2);
+            uint row_idx;
+            (i == 0) ? row_idx = 0 : row_idx = align.get().rows() - 2;
+            features << iid.get()(0), align.get()(row_idx);
             label_idx = km.predict(features)(0);
+        }
 #endif
         pred = nn[labels(label_idx)].forward(sample.transpose()).transpose();
 

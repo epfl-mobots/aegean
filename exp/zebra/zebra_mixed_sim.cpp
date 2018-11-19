@@ -175,7 +175,7 @@ int main(int argc, char** argv)
         std::cout << "Mean body length distance: " << error / 4. << std::endl;
         std::ofstream ofs(
             path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_error_body_length.dat");
-        ofs << error << std::endl;
+        ofs << error / 4 << std::endl;
     }
 
     archive.save(predictions,

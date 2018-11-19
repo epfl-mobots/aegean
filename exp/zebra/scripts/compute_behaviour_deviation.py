@@ -45,6 +45,18 @@ if __name__ == '__main__':
     for i in range(len(lbls1)-1):
         if lbls1[i] == lbls2[i]:
             count += 1
-    print(count / (len(lbls1)-1))
-    fm_error = fm1 - fm2
-    print(np.linalg.norm(fm_error, axis=0))
+    dev_percentage = count / (len(lbls1)-1)
+    print('\t - Behaviours are mathing', dev_percentage, '% of the time')
+    working_path = '/'.join(args.centroids.split('/')[:-1])
+
+    files = [args.feature_matrix_1.split(
+        '/')[-1], args.feature_matrix_2.split('/')[-1]]
+    outname = ''
+    for f in files:
+        if 'traj_ex' in f:
+            outname = f.split('.')[0] + '_deviation.dat'
+    if outname:
+        with open(working_path + '/' + outname, 'w') as f:
+            f.write(str(dev_percentage))
+    # fm_error = fm1 - fm2
+    # print(np.linalg.norm(fm_error, axis=0))

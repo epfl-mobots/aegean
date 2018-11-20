@@ -54,8 +54,25 @@ shapeList = [
     # Circle((0, 0), radius=1, facecolor=colors[5]),
 ]
 
+v = np.r_[circ, circ[::-1] * 0.6]
+oc = mpl.path.Path(v)
 
-def pplots(data, ax, sub_colors=[], exp_title='', ticks=False, mn=False):
+handles_a = [
+    mlines.Line2D([0], [0], color='black', marker=oc,
+                  markersize=6, label='Mean and SD'),
+    mlines.Line2D([], [], linestyle='none', color='black', marker='*',
+                  markersize=5, label='Median'),
+    mlines.Line2D([], [], linestyle='none', markeredgewidth=1, marker='o',
+                  color='black', markeredgecolor='w', markerfacecolor='black', alpha=0.5,
+                  markersize=5, label='Single run')
+]
+handles_b = [
+    mlines.Line2D([0], [1], color='black',  label='Mean'),
+    Circle((0, 0), radius=1, facecolor='black', alpha=0.35, label='SD')
+]
+
+
+def pplots(data, ax, sub_colors=[], exp_title='', ticks=False):
     paper_rc = {'lines.linewidth': 1, 'lines.markersize': 10}
     sns.set_context("paper", rc=paper_rc)
 
@@ -70,60 +87,117 @@ def pplots(data, ax, sub_colors=[], exp_title='', ticks=False, mn=False):
 
     medians = []
     for d in data:
-        # print(np.median(d))
         medians.append([np.median(list(d))])
     sns.swarmplot(data=medians, palette=['#000000']*10,
                   marker='*', size=5,  ax=ax)
 
 
-def per_segment_plots(replicate_dict, args):
+def error_plots(replicate_dict, args):
     mse_dist = []
     ble_dist = []
 
-    for k, v in replicate_dict.items():
+    for _, v in replicate_dict.items():
         mse_dist.append(v['mse'])
         ble_dist.append(v['ble'])
 
-    fig = plt.figure(figsize=(4, 4))
-    ax = plt.gca()
-    pplots(mse_dist, ax, sub_colors=colors)
-    plt.savefig(args.path + '/segment_error_plots_mse.png', dpi=300)
+    ticks = np.arange(0.05, 0.276, 0.025)
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
+        7, 4), gridspec_kw={'width_ratios': [3, 1]})
+    fig.subplots_adjust(hspace=0.00, wspace=0.10)
+    sns.despine(bottom=True, left=True)
 
-    fig = plt.figure(figsize=(4, 4))
-    ax = plt.gca()
-    pplots(ble_dist, ax, sub_colors=colors)
-    plt.savefig(args.path + '/segment_error_plots_ble.png', dpi=300)
+    # MSE ---------
+    pplots(mse_dist, ax0, sub_colors=colors)
+    ax0.set_ylabel(
+        'Average mean squared position error (AMSPE) in cm', labelpad=1.5)
+    ax0.set_xlabel('Experiment', labelpad=1.5)
+    # ax0.legend(handles=handles_a,
+    #            handletextpad=0.5, columnspacing=1,
+    #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
+    ax0.set_yticks(ticks)
 
+    mean_of_means = [np.mean(l) for l in mse_dist]
+    pplots([mean_of_means], ax1, sub_colors=colors)
+    ax1.set_ylabel(
+        'Average of AMSPE in cm', labelpad=1.5)
+    ax1.set_yticks(ticks)
+    ax1.yaxis.tick_right()
+    ax1.set_yticklabels([])
+    ax1.tick_params(axis='both', which='both', length=0)
+    ax1.set_xticks([])
+    ax1.set_xlabel('Total', labelpad=9)
+    ax1.legend(handles=handles_a,
+               handletextpad=0.5, columnspacing=1,
+               loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
+    plt.savefig(args.path + '/mse_error_plots.tiff', dpi=300)
 
-def all_plots(replicate_dict, args):
-    mse_dist = []
-    ble_dist = []
+    # BLE ---------
+    ticks = np.arange(0.01, 0.075, 0.005)
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
+        7, 4), gridspec_kw={'width_ratios': [3, 1]})
+    fig.subplots_adjust(hspace=0.00, wspace=0.10)
+    sns.despine(bottom=True, left=True)
 
-    for k, v in replicate_dict.items():
-        mse_dist.append(v['mse'])
-        ble_dist.append(v['ble'])
+    pplots(ble_dist, ax0, sub_colors=colors)
+    ax0.set_ylabel(
+        'Average body length error (ABLE) (Body length ~ 4 cm)', labelpad=1.5)
+    ax0.set_xlabel('Experiment', labelpad=1.5)
+    # ax0.legend(handles=handles_a,
+    #            handletextpad=0.5, columnspacing=1,
+    #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
+    ax0.set_yticks(ticks)
 
-    mse_dist = [item for sublist in mse_dist for item in sublist]
-    ble_dist = [item for sublist in ble_dist for item in sublist]
-    dist = [mse_dist, ble_dist]
-
-    fig = plt.figure(figsize=(4, 4))
-    ax = plt.gca()
-    pplots(dist, ax, sub_colors=colors)
-    plt.savefig(args.path + '/total_error_plots.png', dpi=300)
+    mean_of_means = [np.mean(l) for l in ble_dist]
+    pplots([mean_of_means], ax1, sub_colors=colors)
+    ax1.set_ylabel(
+        'Average of (ABLE) in cm', labelpad=1.5)
+    ax1.set_yticks(ticks)
+    ax1.yaxis.tick_right()
+    ax1.set_yticklabels([])
+    ax1.tick_params(axis='both', which='both', length=0)
+    ax1.set_xticks([])
+    ax1.set_xlabel('Total', labelpad=9)
+    ax1.legend(handles=handles_a,
+               handletextpad=0.5, columnspacing=1,
+               loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
+    plt.savefig(args.path + '/ble_error_plots.tiff', dpi=300)
 
 
 def deviation_plots(replicate_dict, args):
     dpe_dist = []
     for k, v in replicate_dict.items():
         dpe_dist.append(v['dpe'])
-    all_dpes = [item for sublist in dpe_dist for item in sublist]
-    dpe_dist.append(all_dpes)
 
-    fig = plt.figure(figsize=(4, 4))
-    ax = plt.gca()
-    pplots(dpe_dist, ax, sub_colors=colors)
-    plt.savefig(args.path + '/deviation_plots.png', dpi=300)
+    ticks = np.arange(0.60, 1.04, 0.05)
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
+        7, 4), gridspec_kw={'width_ratios': [3, 1]})
+    fig.subplots_adjust(hspace=0.00, wspace=0.10)
+    sns.despine(bottom=True, left=True)
+
+    pplots(dpe_dist, ax0, sub_colors=colors)
+    ax0.set_ylabel(
+        'Correct behaviour prediction percentage', labelpad=1.5)
+    ax0.set_xlabel('Experiment', labelpad=1.5)
+    # ax0.legend(handles=handles_a,
+    #            handletextpad=0.5, columnspacing=1,
+    #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
+    ax0.set_yticks(ticks)
+
+    mean_of_means = [np.mean(l) for l in dpe_dist]
+    pplots([mean_of_means], ax1, sub_colors=colors)
+    ax1.set_ylabel(
+        'Average of experiment percentages', labelpad=1.5)
+    ax1.yaxis.tick_right()
+    ax1.set_yticks(ticks)
+    # ax1.set_yticklabels([])
+    ax1.tick_params(axis='both', which='both', length=0)
+    ax1.set_xticks([])
+    ax1.set_xlabel('Total', labelpad=9)
+    ax1.legend(handles=handles_a,
+               handletextpad=0.5, columnspacing=1,
+               loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
+
+    plt.savefig(args.path + '/deviation_plots.tiff', dpi=300)
 
 
 if __name__ == '__main__':
@@ -181,6 +255,5 @@ if __name__ == '__main__':
             replicate_dict[i]['ble'].append(ble_er)
             replicate_dict[i]['dpe'].append(dev_pe)
 
-    per_segment_plots(replicate_dict, args)
-    all_plots(replicate_dict, args)
+    error_plots(replicate_dict, args)
     deviation_plots(replicate_dict, args)

@@ -1,6 +1,7 @@
 #include <tools/polygons/circular_corridor.hpp>
 #include <tools/archive.hpp>
 #include <clustering/kmeans.hpp>
+#include <tools/mathtools.hpp>
 
 #include <features/alignment.hpp>
 #include <features/inter_individual_distance.hpp>
@@ -18,12 +19,14 @@ using namespace aegean;
 using namespace tools;
 using namespace clustering;
 
+#define VEL_THRESHOLD (7. * M_PI / 180.)
+
 struct Params {
     struct CircularCorridor : public defaults::CircularCorridor {
     };
 
     struct sim {
-        static constexpr uint timesteps = 1000;
+        static constexpr uint timesteps = 28800;
         static constexpr uint num_individuals = 6;
     };
 };
@@ -61,6 +64,16 @@ int main(int argc, char** argv)
         ifs.close();
     }
 
+    uint window_in_seconds;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/window_in_seconds.dat");
+        ifs >> window_in_seconds;
+        ifs.close();
+    }
+
+    uint aggregate_window = window_in_seconds * (fps / num_centroids);
+
     Eigen::MatrixXd centroids;
     archive.load(centroids, path + "/centroids_kmeans.dat");
     KMeans<> km(centroids);
@@ -73,6 +86,7 @@ int main(int argc, char** argv)
     // position and velocity matrices
     Eigen::MatrixXd positions(num_timesteps, num_individuals * 2);
     Eigen::MatrixXd velocities(num_timesteps, num_individuals * 2);
+    Eigen::MatrixXd last_phi(1, num_individuals);
 
     // nn structure
     // TODO: the nn structure needs to be updated every time. Change this!
@@ -115,15 +129,23 @@ int main(int argc, char** argv)
         using distance_func_t
             = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
         features::InterIndividualDistance<distance_func_t> iid;
-        iid(positions.row(i), static_cast<float>(num_centroids) / fps);
         features::Alignment align;
-        align(positions.row(i), static_cast<float>(num_centroids) / fps);
+        iid(positions.row(i), static_cast<float>(num_centroids) / fps);
+
+        Eigen::MatrixXd pos_block;
+        if (i > 0)
+            pos_block = positions.block(i - 1, 0, 2, positions.cols());
+        else
+            pos_block = positions.block(i, 0, 2, positions.cols());
+        align(pos_block, static_cast<float>(num_centroids) / fps);
+
         Eigen::MatrixXd sample(1, 2);
         sample << iid.get()(0), align.get()(0);
         uint label = km.predict(sample)(0);
 
         std::vector<uint> shuffled_idcs = ind_idcs;
         std::random_shuffle(shuffled_idcs.begin(), shuffled_idcs.end());
+        Eigen::VectorXi controller_idcs = Eigen::VectorXi::Zero(num_individuals);
         for (const uint focal_idx : shuffled_idcs) {
             Eigen::MatrixXd input((num_individuals - 1) * 4, 1); // x y vx vy for n-1 individuals
             uint cur_idx = 0;
@@ -139,14 +161,25 @@ int main(int argc, char** argv)
 
             // TODO: introduce ethogram transition probabilities
             Eigen::MatrixXd pred;
+            // if (i % aggregate_window == 0) {
             if (rgend.rand() > 0.84)
-                pred = nn[rgeni.rand()].forward(input);
+                controller_idcs(focal_idx) = rgeni.rand();
             else
-                pred = nn[label].forward(input);
+                controller_idcs(focal_idx) = label;
+            // }
+            pred = nn[controller_idcs(focal_idx)].forward(input);
 
             polygons::CircularCorridor<Params> cc;
             double radius = (pred(0) + 1) / (2 * 10) + cc.inner_radius();
             double phi = std::atan2(pred(2), pred(1));
+
+            // TODO: testing
+            double dphi = phi - last_phi(focal_idx);
+            if (std::fabs(dphi) > VEL_THRESHOLD) {
+                phi = sgn(phi) * VEL_THRESHOLD;
+            }
+            last_phi(focal_idx) = phi;
+
             double x = radius * std::cos(phi) + cc.center().x();
             double y = radius * std::sin(phi) + cc.center().y();
             positions(i + 1, focal_idx * 2) = x;
@@ -157,6 +190,10 @@ int main(int argc, char** argv)
                 / (static_cast<float>(num_centroids) / fps);
         }
     }
+
+    Eigen::MatrixXd vel = (positions - rollMatrix(positions, -1)) / (static_cast<float>(num_centroids) / fps);
+    Eigen::MatrixXd vel_test = vel.block(0, 0, vel.rows() - 1, positions.cols());
+    std::cout << vel_test.colwise().maxCoeff() << std::endl;
 
     archive.save(positions, "test");
 

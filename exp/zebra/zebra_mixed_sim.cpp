@@ -92,9 +92,16 @@ int main(int argc, char** argv)
     std::vector<simple_nn::NeuralNet> nn(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
         nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(
-            positions.cols() - 2 + velocities.cols() - 2, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 3); // pos_in_cc phi.cos phi.sin
+            positions.cols() - 2 + velocities.cols() - 2, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 3); // pos_in_cc phi.cos phi.sin
         Eigen::MatrixXd weights;
         archive.load(weights, path + "/nn_controller_weights_" + std::to_string(b) + ".dat");
         nn[b].set_weights(weights);

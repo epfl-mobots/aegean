@@ -47,7 +47,7 @@ if __name__ == '__main__':
             count += 1
     dev_percentage = count / (len(lbls1)-1)
     print('\t - Behaviours are mathing', dev_percentage, '% of the time')
-    working_path = '/'.join(args.centroids.split('/')[:-1])
+    working_path = '/'.join(args.feature_matrix_1.split('/')[:-1])
 
     files = [args.feature_matrix_1.split(
         '/')[-1], args.feature_matrix_2.split('/')[-1]]

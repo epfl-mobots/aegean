@@ -321,9 +321,16 @@ int main(int argc, char** argv)
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
         simple_nn::NeuralNet network;
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(inputs[behav].cols(), 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, outputs[behav].cols());
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(inputs[behav].cols(), 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, outputs[behav].cols());
 
         // Random initial weights
         Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());

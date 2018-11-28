@@ -148,5 +148,9 @@ int main(int argc, char** argv)
         ofs << fps << std::endl;
     }
 
+    std::vector<Eigen::MatrixXd> clusters = etho.clusters();
+    for (uint i = 0; i < clusters.size(); ++i)
+        etho.archive().save(clusters[i], "cluster_" + std::to_string(i) + "_data");
+
     return 0;
 }

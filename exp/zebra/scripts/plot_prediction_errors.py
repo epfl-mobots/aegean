@@ -171,7 +171,7 @@ def deviation_plots(replicate_dict, args):
     for k, v in replicate_dict.items():
         dpe_dist.append(v['dpe'])
 
-    ticks = np.arange(70, 104, 5)
+    ticks = np.arange(60, 104, 10)
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
         7, 3.3), gridspec_kw={'width_ratios': [3, 1]})
     fig.subplots_adjust(hspace=0.00, wspace=0.10)
@@ -185,16 +185,17 @@ def deviation_plots(replicate_dict, args):
     #            handletextpad=0.5, columnspacing=1,
     #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
     ax0.set_yticks(ticks)
-    ax0.set_ylim([78, 100])
+    ax0.set_ylim([60, 100])
 
     mean_of_means = [np.mean(l) for l in dpe_dist]
+    print('MoM:', np.mean(mean_of_means))
     np.savetxt(args.path + '/deviation_total_means.dat', mean_of_means)
     pplots([mean_of_means], ax1, sub_colors=colors[len(dpe_dist)+1:])
     ax1.set_ylabel(
         'Average of experiment percentages', labelpad=1.5)
     ax1.yaxis.tick_right()
     ax1.set_yticks(ticks)
-    ax1.set_ylim([78, 100])
+    ax1.set_ylim([60, 100])
 
     ax1.set_yticklabels([])
     ax1.tick_params(axis='both', which='both', length=0)

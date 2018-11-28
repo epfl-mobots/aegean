@@ -16,6 +16,7 @@ from cycler import cycler
 
 flatui = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
 palette = flatui
+palette = 'Paired'
 # palette = "husl"
 colors = sns.color_palette(palette)
 sns.set(style="darkgrid")
@@ -35,8 +36,6 @@ params = {
     'font.family': 'Arial',
 }
 rcParams.update(params)
-
-data_path = os.getcwd() + '/'
 
 pts = np.linspace(0, np.pi * 2, 24)
 circ = np.c_[np.sin(pts) / 2, -np.cos(pts) / 2]
@@ -100,9 +99,9 @@ def error_plots(replicate_dict, args):
         mse_dist.append(v['mse'])
         ble_dist.append(v['ble'])
 
-    ticks = np.arange(0.05, 0.276, 0.025)
+    ticks = np.arange(5, 27.6, 2.5)
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
-        7, 4), gridspec_kw={'width_ratios': [3, 1]})
+        7, 3.7), gridspec_kw={'width_ratios': [3, 1]})
     fig.subplots_adjust(hspace=0.00, wspace=0.10)
     sns.despine(bottom=True, left=True)
 
@@ -115,9 +114,10 @@ def error_plots(replicate_dict, args):
     #            handletextpad=0.5, columnspacing=1,
     #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
     ax0.set_yticks(ticks)
+    ax0.set_ylim([6, 23])
 
     mean_of_means = [np.mean(l) for l in mse_dist]
-    pplots([mean_of_means], ax1, sub_colors=colors)
+    pplots([mean_of_means], ax1, sub_colors=colors[len(mse_dist)+1:])
     ax1.set_ylabel(
         'Average of AMSPE in cm', labelpad=1.5)
     ax1.set_yticks(ticks)
@@ -126,15 +126,16 @@ def error_plots(replicate_dict, args):
     ax1.tick_params(axis='both', which='both', length=0)
     ax1.set_xticks([])
     ax1.set_xlabel('Total', labelpad=9)
+    ax1.set_ylim([6, 23])
     ax1.legend(handles=handles_a,
                handletextpad=0.5, columnspacing=1,
                loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
     plt.savefig(args.path + '/mse_error_plots.tiff', dpi=300)
 
     # BLE ---------
-    ticks = np.arange(0.01, 0.075, 0.005)
+    ticks = np.arange(1, 7.5, 0.5)
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
-        7, 4), gridspec_kw={'width_ratios': [3, 1]})
+        7, 3.5), gridspec_kw={'width_ratios': [3, 1]})
     fig.subplots_adjust(hspace=0.00, wspace=0.10)
     sns.despine(bottom=True, left=True)
 
@@ -146,9 +147,10 @@ def error_plots(replicate_dict, args):
     #            handletextpad=0.5, columnspacing=1,
     #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
     ax0.set_yticks(ticks)
+    ax0.set_ylim([1.4, 5.8])
 
     mean_of_means = [np.mean(l) for l in ble_dist]
-    pplots([mean_of_means], ax1, sub_colors=colors)
+    pplots([mean_of_means], ax1, sub_colors=colors[len(ble_dist)+1:])
     ax1.set_ylabel(
         'Average of (ABLE) in cm', labelpad=1.5)
     ax1.set_yticks(ticks)
@@ -157,6 +159,7 @@ def error_plots(replicate_dict, args):
     ax1.tick_params(axis='both', which='both', length=0)
     ax1.set_xticks([])
     ax1.set_xlabel('Total', labelpad=9)
+    ax1.set_ylim([1.4, 5.8])
     ax1.legend(handles=handles_a,
                handletextpad=0.5, columnspacing=1,
                loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
@@ -168,9 +171,9 @@ def deviation_plots(replicate_dict, args):
     for k, v in replicate_dict.items():
         dpe_dist.append(v['dpe'])
 
-    ticks = np.arange(0.60, 1.04, 0.05)
+    ticks = np.arange(70, 104, 5)
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(
-        7, 4), gridspec_kw={'width_ratios': [3, 1]})
+        7, 3.3), gridspec_kw={'width_ratios': [3, 1]})
     fig.subplots_adjust(hspace=0.00, wspace=0.10)
     sns.despine(bottom=True, left=True)
 
@@ -182,14 +185,18 @@ def deviation_plots(replicate_dict, args):
     #            handletextpad=0.5, columnspacing=1,
     #            loc="upper right", ncol=1, framealpha=0, frameon=False, fontsize=gfontsize/2)
     ax0.set_yticks(ticks)
+    ax0.set_ylim([78, 100])
 
     mean_of_means = [np.mean(l) for l in dpe_dist]
-    pplots([mean_of_means], ax1, sub_colors=colors)
+    np.savetxt(args.path + '/deviation_total_means.dat', mean_of_means)
+    pplots([mean_of_means], ax1, sub_colors=colors[len(dpe_dist)+1:])
     ax1.set_ylabel(
         'Average of experiment percentages', labelpad=1.5)
     ax1.yaxis.tick_right()
     ax1.set_yticks(ticks)
-    # ax1.set_yticklabels([])
+    ax1.set_ylim([78, 100])
+
+    ax1.set_yticklabels([])
     ax1.tick_params(axis='both', which='both', length=0)
     ax1.set_xticks([])
     ax1.set_xlabel('Total', labelpad=9)
@@ -251,9 +258,9 @@ if __name__ == '__main__':
             ble_er = np.asscalar(np.loadtxt(f2))
             dev_pe = np.asscalar(np.loadtxt(f3))
 
-            replicate_dict[i]['mse'].append(mse_er)
-            replicate_dict[i]['ble'].append(ble_er)
-            replicate_dict[i]['dpe'].append(dev_pe)
+            replicate_dict[i]['mse'].append(mse_er * 100)
+            replicate_dict[i]['ble'].append(ble_er * 100)
+            replicate_dict[i]['dpe'].append(dev_pe * 100)
 
     error_plots(replicate_dict, args)
     deviation_plots(replicate_dict, args)

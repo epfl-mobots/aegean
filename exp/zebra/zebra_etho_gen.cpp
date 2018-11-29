@@ -1,6 +1,7 @@
 #include <ethogram/automated_ethogram.hpp>
 #include <clustering/kmeans.hpp>
 #include <clustering/opt/gap_statistic.hpp>
+#include <clustering/opt/persistence.hpp>
 #include <clustering/opt/no_opt.hpp>
 
 #include <tools/archive.hpp>
@@ -11,6 +12,7 @@
 
 #include <features/alignment.hpp>
 #include <features/inter_individual_distance.hpp>
+#include <features/velocity.hpp>
 
 #include <Eigen/Core>
 #include <iostream>
@@ -102,7 +104,8 @@ int main(int argc, char** argv)
 
     using clustering_t = KMeans<aegean::defaults::KMeansPlusPlus>;
     // using clustering_opt_t = GapStatistic<clustering_t, 2, 10>;
-    using clustering_opt_t = NoOpt<3>;
+    using clustering_opt_t = Persistence<clustering_t, 2, 15>;
+    // using clustering_opt_t = NoOpt<3>;
 
     AutomatedEthogram<
         clusteringmethod<clustering_t>,
@@ -112,9 +115,9 @@ int main(int argc, char** argv)
     etho.save();
 
     std::cout << "Cluster centroids (KMeans)" << std::endl;
+    std::cout << "Num clusters: " << etho.model().centroids().rows() << std::endl;
     std::cout << etho.model().centroids() << std::endl
               << std::endl;
-    ;
 
     // saving
     for (uint i = 0; i < dataframes.size(); ++i) {

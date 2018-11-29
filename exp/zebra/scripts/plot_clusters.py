@@ -17,10 +17,8 @@ from cycler import cycler
 
 flatui = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
 palette = flatui
+# palette = 'Paired'
 # palette = "husl"
-colors = sns.color_palette(palette)
-sns.set(style="darkgrid")
-
 
 gfontsize = 10
 params = {
@@ -65,12 +63,16 @@ if __name__ == '__main__':
         cluster_data.append(np.loadtxt(
             args.path + '/cluster_' + str(i) + '_data.dat'))
 
+    colors = sns.color_palette(palette, num_behaviours)
+    sns.set(style="darkgrid")
+
     all_data = cluster_data[0]
     for i in range(1, num_behaviours):
         all_data = np.concatenate((all_data, cluster_data[i]))
     x_min, x_max = all_data[:, 0].min() - 0.01, all_data[:, 0].max() + 0.01
     y_min, y_max = all_data[:, 1].min() - 0.01, all_data[:, 1].max() + 0.01
     h = .00005
+    # h = .0015
     cm = ListedColormap(sns.color_palette(palette[:num_behaviours]).as_hex())
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
                          np.arange(y_min, y_max, h))
@@ -93,6 +95,7 @@ if __name__ == '__main__':
         x = cluster_data[i][:, 0]
         y = cluster_data[i][:, 1]
         plt.plot(x, y, '.', color=colors[i])
+
     plt.xlabel('Feature 1')
     plt.ylabel('Feature 2')
     ax.set_xticklabels([])

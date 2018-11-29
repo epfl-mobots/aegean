@@ -90,6 +90,13 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
+                source='examples/persistence_example.cpp',
+                includes='./src ./src/limbo/src',
+                uselib=libs,
+                target='persistence_example')
+
+    bld.program(features='cxx',
+                install_path=None,
                 source='exp/zebra/zebra_etho_gen.cpp',
                 includes='./src ./src/limbo/src',
                 uselib=libs,

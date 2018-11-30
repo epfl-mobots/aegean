@@ -321,15 +321,11 @@ int main(int argc, char** argv)
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
         simple_nn::NeuralNet network;
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(inputs[behav].cols(), 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(inputs[behav].cols(), 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
         network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, outputs[behav].cols());
 
         // Random initial weights

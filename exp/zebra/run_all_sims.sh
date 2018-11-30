@@ -1,7 +1,7 @@
 #!/bin/sh
 
-sim='../../build/zebra_mixed_sim'
-# sim='../../build/zebra_mixed_sim_original_labels'
+# sim='../../build/zebra_mixed_sim'
+sim='../../build/zebra_mixed_sim_original_labels'
 
 dir=$1
 num_experiments=$2

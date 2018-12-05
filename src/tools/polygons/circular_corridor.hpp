@@ -10,8 +10,8 @@ namespace aegean {
         struct CircularCorridor {
             static constexpr double inner_radius = 0.19;
             static constexpr double outer_radius = 0.29;
-            static constexpr double center_x = 0.58;
-            static constexpr double center_y = 0.54;
+            static constexpr double center_x = 0.570587;
+            static constexpr double center_y = 0.574004;
         };
     } // namespace defaults
 

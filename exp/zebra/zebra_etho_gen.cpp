@@ -53,7 +53,8 @@ int main(int argc, char** argv)
     int process_frames = 27000;
     int fps = 15;
     int centroids = 3;
-    double scale = 1.13 / 1024;
+    uint resolution = 1024; // assume that X x Y is always the same res
+    double scale = 1.10 / resolution;
     uint window_in_seconds = 3;
     uint aggregate_frames = static_cast<int>(fps / centroids) * window_in_seconds;
 
@@ -77,6 +78,9 @@ int main(int argc, char** argv)
         std::vector<uint> prob_cols = {2, 5, 8, 11, 14, 17};
         removeCols(exp_data, prob_cols); // remove idTracker probability cols
         Eigen::MatrixXd positions = exp_data.block(exp_data.rows() - initial_keep, 0, initial_keep, exp_data.cols());
+
+        for (uint i = 0; i < positions.cols() / 2; ++i) // invert y axis (opencv (0,0) is top left)
+            positions.col(i * 2 + 1).array() = resolution - positions.col(i * 2 + 1).array();
 
         // we process the raw positions to extract useful features for every timestep
         ExpDataFrame edf(positions, fps, centroids, scale, initial_keep - process_frames);
@@ -104,8 +108,8 @@ int main(int argc, char** argv)
 
     using clustering_t = KMeans<aegean::defaults::KMeansPlusPlus>;
     // using clustering_opt_t = GapStatistic<clustering_t, 2, 10>;
-    using clustering_opt_t = Persistence<clustering_t, 2, 15>;
-    // using clustering_opt_t = NoOpt<3>;
+    // using clustering_opt_t = Persistence<clustering_t, 2, 15>;
+    using clustering_opt_t = NoOpt<1>;
 
     AutomatedEthogram<
         clusteringmethod<clustering_t>,

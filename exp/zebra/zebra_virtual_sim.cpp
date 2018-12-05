@@ -78,15 +78,15 @@ int main(int argc, char** argv)
     archive.load(centroids, path + "/centroids_kmeans.dat");
     KMeans<> km(centroids);
 
-    float timestep
-        = static_cast<float>(num_centroids) / static_cast<float>(fps);
+    float timestep = static_cast<float>(num_centroids) / fps;
     uint num_timesteps = Params::sim::timesteps;
     uint num_individuals = Params::sim::num_individuals;
 
     // position and velocity matrices
     Eigen::MatrixXd positions(num_timesteps, num_individuals * 2);
     Eigen::MatrixXd velocities(num_timesteps, num_individuals * 2);
-    Eigen::MatrixXd last_phi(1, num_individuals);
+    Eigen::MatrixXd radius(1, num_individuals);
+    Eigen::MatrixXd phi(1, num_individuals);
 
     // nn structure
     // TODO: the nn structure needs to be updated every time. Change this!
@@ -94,7 +94,8 @@ int main(int argc, char** argv)
     for (uint b = 0; b < behaviours; ++b) {
         nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(
             positions.cols() - 2 + velocities.cols() - 2, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
         nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 3); // pos_in_cc phi.cos phi.sin
         Eigen::MatrixXd weights;
         archive.load(weights, path + "/nn_controller_weights_" + std::to_string(b) + ".dat");
@@ -113,12 +114,16 @@ int main(int argc, char** argv)
             if (cc.is_valid(pt)) {
                 positions(0, i * 2) = pt.x();
                 positions(0, i * 2 + 1) = pt.y();
+                double x = pt.x() - cc.center().x();
+                double y = pt.y() - cc.center().y();
+                radius(i) = std::sqrt(pow(x, 2) + pow(y, 2));
+                phi(i) = std::fmod(std::atan2(y, x) + M_PI, M_PI);
                 ++i;
             }
         }
         Eigen::VectorXd noise = 0.3 * (Eigen::VectorXd::Random(num_individuals * 2).array() - 0.7) + 1;
         positions.row(1) = positions.row(0).array() * noise.transpose().array();
-        velocities.row(0) = (positions.row(1) - positions.row(0)) / (static_cast<float>(num_centroids) / fps);
+        velocities.row(0) = (positions.row(1) - positions.row(0)) / timestep;
     }
 
     // spin virtual sim
@@ -130,14 +135,14 @@ int main(int argc, char** argv)
             = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
         features::InterIndividualDistance<distance_func_t> iid;
         features::Alignment align;
-        iid(positions.row(i), static_cast<float>(num_centroids) / fps);
+        iid(positions.row(i), timestep);
 
         Eigen::MatrixXd pos_block;
         if (i > 0)
             pos_block = positions.block(i - 1, 0, 2, positions.cols());
         else
             pos_block = positions.block(i, 0, 2, positions.cols());
-        align(pos_block, static_cast<float>(num_centroids) / fps);
+        align(pos_block, timestep);
 
         Eigen::MatrixXd sample(1, 2);
         sample << iid.get()(0), align.get()(0);
@@ -160,38 +165,45 @@ int main(int argc, char** argv)
             }
 
             // TODO: introduce ethogram transition probabilities
-            Eigen::MatrixXd pred;
             // if (i % aggregate_window == 0) {
             if (rgend.rand() > 0.84)
                 controller_idcs(focal_idx) = rgeni.rand();
             else
                 controller_idcs(focal_idx) = label;
             // }
-            pred = nn[controller_idcs(focal_idx)].forward(input);
+            Eigen::MatrixXd pred = nn[controller_idcs(focal_idx)].forward(input);
 
             polygons::CircularCorridor<Params> cc;
-            double radius = (pred(0) + 1) / (2 * 10) + cc.inner_radius();
-            double phi = std::atan2(pred(2), pred(1));
+            double dradius = pred(0) * timestep;
+            double dphi = std::atan2(pred(2) * timestep, pred(1) * timestep);
+            double thres = 22 * M_PI / 180. * timestep;
+            double diff = phi(focal_idx) + dphi;
+            if (phi(focal_idx) + dphi < 0)
+                diff = M_PI + phi(focal_idx) + dphi;
+            else if (phi(focal_idx) + dphi > 2 * M_PI)
+                diff = phi(focal_idx) + dphi - M_PI;
+            if (abs(diff) > thres)
+                diff = sgn(dphi) * thres;
+            phi(focal_idx) += diff;
+            radius(focal_idx) += pred(0) * timestep;
+            if (radius(focal_idx) > cc.outer_radius())
+                radius(focal_idx) = cc.inner_radius() + 0.05;
 
-            // TODO: testing
-            double dphi = phi - last_phi(focal_idx);
-            if (std::fabs(dphi) > VEL_THRESHOLD) {
-                phi = sgn(phi) * VEL_THRESHOLD;
-            }
-            last_phi(focal_idx) = phi;
+            if (radius(focal_idx) < cc.inner_radius())
+                radius(focal_idx) = cc.inner_radius() + 0.05;
 
-            double x = radius * std::cos(phi) + cc.center().x();
-            double y = radius * std::sin(phi) + cc.center().y();
+            double x = radius(focal_idx) * std::cos(phi(focal_idx)) + cc.center().x();
+            double y = radius(focal_idx) * std::sin(phi(focal_idx)) + cc.center().y();
             positions(i + 1, focal_idx * 2) = x;
             positions(i + 1, focal_idx * 2 + 1) = y;
             velocities(i + 1, focal_idx * 2) = (positions(i + 1, focal_idx * 2) - positions(i, focal_idx * 2))
-                / (static_cast<float>(num_centroids) / fps);
+                / timestep;
             velocities(i + 1, focal_idx * 2 + 1) = (positions(i + 1, focal_idx * 2 + 1) - positions(i, focal_idx * 2 + 1))
-                / (static_cast<float>(num_centroids) / fps);
+                / timestep;
         }
     }
 
-    Eigen::MatrixXd vel = (positions - rollMatrix(positions, -1)) / (static_cast<float>(num_centroids) / fps);
+    Eigen::MatrixXd vel = (positions - rollMatrix(positions, -1)) / timestep;
     Eigen::MatrixXd vel_test = vel.block(0, 0, vel.rows() - 1, positions.cols());
     std::cout << vel_test.colwise().maxCoeff() << std::endl;
 

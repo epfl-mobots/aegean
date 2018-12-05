@@ -31,6 +31,9 @@ if __name__ == '__main__':
     parser.add_argument('--positions', '-p', type=str,
                         help='Path to the trajectory file',
                         required=True)
+    parser.add_argument('--velocities', '-v', action='store_true', default=False,
+                        help='Path to the velocity file',
+                        required=False)
     parser.add_argument('--features', '-f', nargs='+', type=str, default='',
                         help='List of features to load')
     parser.add_argument('--out-dir', '-o', type=str,
@@ -46,10 +49,15 @@ if __name__ == '__main__':
     tsteps = traj.shape[0]
     if args.virtual:
         vtraj = np.loadtxt(args.virtual)
+    if args.velocities:
+        rolledPos = np.roll(traj, -1, axis=0)
+        vel = rolledPos - traj
+        mX, mY = np.meshgrid(np.arange(0, 1, 0.005),
+                             np.arange(0, 1, 0.005))
 
     iradius = 0.19
     oradius = 0.29
-    center = (0.58, 0.54)
+    center = (0.570587, 0.574004)
 
     feature_list = []
     for f in args.features:
@@ -94,7 +102,7 @@ if __name__ == '__main__':
             x = traj[i, j*2]
             y = traj[i, j*2+1]
             plt.scatter(x, y, marker='.',
-                        label='Individual ' + str(inum))
+                        label='Individual ' + str(inum) + ' ' + str(x) + ' ' + str(y))
 
             text = get_text(feature_list)
             text = 'Living agents\n' + text
@@ -109,6 +117,10 @@ if __name__ == '__main__':
                          verticalalignment='center', transform=ax.transAxes)
                 fig.patch.set_visible(False)
 
+            if args.velocities:
+                Q = plt.quiver(
+                    x, y, vel[i,  j*2], vel[i,  j*2+1], scale=1, units='xy')
+
         if args.virtual:
             x = vtraj[i, 0]
             y = vtraj[i, 1]
@@ -116,10 +128,11 @@ if __name__ == '__main__':
                         label='Virtual agent')
 
         ax.axis('off')
-        ax.invert_yaxis()
+        # ax.invert_yaxis()
         plt.legend(bbox_to_anchor=(1.1, 0.95),
                    bbox_transform=ax.transAxes)
         plt.savefig(
-            str(png_fname) + '.png',
-            transparent=True)
+            str(png_fname) + '.jpg',
+            # transparent=True
+        )
         plt.close('all')

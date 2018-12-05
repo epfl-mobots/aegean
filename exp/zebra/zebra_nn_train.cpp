@@ -17,8 +17,6 @@
 using namespace aegean;
 using namespace tools;
 
-#define USE_POLAR
-
 struct Params {
     struct CircularCorridor : public defaults::CircularCorridor {
     };
@@ -26,7 +24,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 10000);
+        BO_PARAM(int, iterations, 50000);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate
@@ -107,6 +105,7 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
         num_individuals = positions.cols() / 2;
     }
 
+    float timestep = static_cast<float>(centroids) / fps;
     uint aggregate_window = window_in_seconds * (fps / centroids);
 
     std::vector<int> sizes(behaviours, 0);
@@ -117,18 +116,14 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
             sizes[b] += (labels.array() == static_cast<int>(b)).count() * (aggregate_window - 1) * num_individuals;
     }
 
+    uint DIMS_OUT = 3;
     std::vector<Eigen::MatrixXd> inputs(behaviours), outputs(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
-        inputs[b] = Eigen::MatrixXd::Zero(sizes[b], 4 * (num_individuals - 1)); // x y vx vy
-#ifdef USE_POLAR
-        outputs[b] = Eigen::MatrixXd::Zero(sizes[b], 3); // r phi.cos phi.sin
-#else
-        outputs[b] = Eigen::MatrixXd::Zero(sizes[b], 2); // x y
-#endif
+        inputs[b] = Eigen::MatrixXd::Zero(sizes[b], 4 * num_individuals); // x y vx vy
+        outputs[b] = Eigen::MatrixXd::Zero(sizes[b], DIMS_OUT); // dr cosdtheta sindtheta
     }
 
     std::vector<uint> cur_row(behaviours, 0);
-
     for (uint i = 0; i < position_files.size(); ++i) {
         Eigen::MatrixXd positions, velocities;
         Eigen::MatrixXi labels;
@@ -148,50 +143,45 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
 
             for (uint skip = 0, ind = 0; ind < num_individuals; ++skip, ++ind) {
 
-#ifdef USE_POLAR
-                Eigen::MatrixXd target(rpblock.rows(), 3);
-
-                Eigen::MatrixXd pos(rpblock.rows(), 2);
-                pos.col(0) = rpblock.col(skip * 2);
-                pos.col(1) = rpblock.col(skip * 2 + 1);
+                Eigen::MatrixXd target(rpblock.rows(), DIMS_OUT);
+                Eigen::MatrixXd pos_t(rpblock.rows(), 2);
+                Eigen::MatrixXd pos_t_1(pblock.rows(), 2);
 
                 polygons::CircularCorridor<Params> cc;
-                pos.col(0).array() -= cc.center().x();
-                pos.col(1).array() -= cc.center().y();
+                pos_t.col(0) = rpblock.col(skip * 2).array() - cc.center().x();
+                pos_t.col(1) = rpblock.col(skip * 2 + 1).array() - cc.center().y();
+                pos_t_1.col(0) = pblock.col(skip * 2).array() - cc.center().x();
+                pos_t_1.col(1) = pblock.col(skip * 2 + 1).array() - cc.center().y();
+                Eigen::MatrixXd dradius = (pos_t.rowwise().norm() - pos_t_1.rowwise().norm());
 
-                Eigen::MatrixXd radius = pos.rowwise().norm();
-                Eigen::MatrixXd phi = Eigen::MatrixXd(target.rows(), 1);
-                for (uint k = 0; k < phi.rows(); ++k)
-                    phi(k) = std::atan2(pos(k, 1), pos(k, 0));
+                Eigen::MatrixXd dphi = Eigen::MatrixXd(target.rows(), 1);
+                for (uint k = 0; k < dphi.rows(); ++k) {
+                    double phi_t = std::fmod(std::atan2(pos_t(k, 1), pos_t(k, 0)) + 2 * M_PI, 2 * M_PI);
+                    double phi_t_1 = std::fmod(std::atan2(pos_t_1(k, 1), pos_t_1(k, 0)) + 2 * M_PI, 2 * M_PI);
+                    dphi(k) = (phi_t - phi_t_1);
 
-                Eigen::MatrixXd pos_in_cc = radius;
-                pos_in_cc = pos_in_cc.unaryExpr([&](double val) {
-                    if (val < cc.inner_radius())
-                        val = -1;
-                    else if (val > cc.outer_radius())
-                        val = 1;
-                    else
-                        val = 2 * ((val - cc.inner_radius()) / (cc.outer_radius() - cc.inner_radius())) - 1;
-                    return val;
-                });
-                target.col(0) = pos_in_cc;
-                target.col(1) = phi.array().cos();
-                target.col(2) = phi.array().sin();
-#else
-                Eigen::MatrixXd target(rpblock.rows(), 2);
-                target.col(0) = rpblock.col(skip * 2);
-                target.col(1) = rpblock.col(skip * 2 + 1);
-#endif
+                    // need to check the transition between 0-360 and vice versa
+                    // very hacky but should work
+                    if ((phi_t_1 > 3 * M_PI_2) && (phi_t < M_PI_2))
+                        dphi(k) = 2 * M_PI - phi_t_1 + phi_t;
+
+                    if ((phi_t_1 < M_PI_2) && (phi_t > 3 * M_PI_2))
+                        dphi(k) = -(2 * M_PI - phi_t + phi_t_1);
+                }
+
+                target.col(0) = dradius / timestep;
+                target.col(1) = dphi.array().cos() / timestep;
+                target.col(2) = dphi.array().sin() / timestep;
 
                 std::vector<uint> rm = {skip * 2, skip * 2 + 1};
                 Eigen::MatrixXd reduced_pblock = pblock;
-                tools::removeCols(reduced_pblock, rm);
                 Eigen::MatrixXd reduced_vblock = vblock;
+                tools::removeCols(reduced_pblock, rm);
                 tools::removeCols(reduced_vblock, rm);
-
-                for (uint c = 0; c < reduced_pblock.rows(); ++c) {
-                    Eigen::MatrixXd nrow(1, reduced_pblock.cols() + reduced_vblock.cols());
-                    nrow << reduced_pblock.row(c), reduced_vblock.row(c);
+                for (uint c = 0; c < pblock.rows(); ++c) {
+                    Eigen::MatrixXd nrow(1, pblock.cols() + vblock.cols());
+                    nrow << reduced_pblock.row(c), reduced_vblock.row(c),
+                        pblock.block(c, skip * 2, 1, 2), vblock.block(c, skip * 2, 1, 2);
                     inputs[labels(j)].row(cur_row[labels(j)]) = nrow;
                     outputs[labels(j)].row(cur_row[labels(j)]) = target.row(c);
                     ++cur_row[labels(j)];
@@ -225,6 +215,7 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> load(int a
         }
 
         // write nn dims in a file to aid the loading
+        // TODO: store nn structure instead
         {
             std::ofstream ofs(path + "/nn_info.dat");
             ofs << outputs.size() << std::endl;
@@ -267,8 +258,8 @@ namespace aegean {
             uint split = y_d.rows() / 2;
             Eigen::MatrixXd desired = y_d.block(0, 0, split, y_d.cols());
             Eigen::MatrixXd desired_prev = y_d.block(split, 0, split, y_d.cols());
-            return 0.3 * simple_nn::MeanSquaredError::df(y, desired)
-                + 0.7 * simple_nn::MeanSquaredError::df(y, desired_prev);
+            return 0.8 * simple_nn::MeanSquaredError::df(y, desired)
+                + 0.2 * simple_nn::MeanSquaredError::df(y, desired_prev);
         }
     };
 } // namespace aegean
@@ -321,12 +312,14 @@ int main(int argc, char** argv)
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
         simple_nn::NeuralNet network;
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(inputs[behav].cols(), 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(20, 20);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, outputs[behav].cols());
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(inputs[behav].cols(), 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
+        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, outputs[behav].cols());
 
         // Random initial weights
         Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());

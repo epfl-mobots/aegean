@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     int initial_keep = 27855;
     int process_frames = 27000;
     int fps = 15;
-    int centroids = 3;
+    int centroids = 1;
     uint resolution = 1024; // assume that X x Y is always the same res
     double scale = 1.10 / resolution;
     uint window_in_seconds = 3;
@@ -108,8 +108,8 @@ int main(int argc, char** argv)
 
     using clustering_t = KMeans<aegean::defaults::KMeansPlusPlus>;
     // using clustering_opt_t = GapStatistic<clustering_t, 2, 10>;
-    // using clustering_opt_t = Persistence<clustering_t, 2, 15>;
-    using clustering_opt_t = NoOpt<1>;
+    using clustering_opt_t = Persistence<clustering_t, 2, 15>;
+    // using clustering_opt_t = NoOpt<1>;
 
     AutomatedEthogram<
         clusteringmethod<clustering_t>,

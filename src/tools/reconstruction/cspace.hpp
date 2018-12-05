@@ -45,6 +45,13 @@ namespace aegean {
                             }
                         }
 
+                        rows_wo_nans.clear();
+                        for (uint j = 0; j < individual.rows(); ++j) {
+                            if (individual.row(j).array().isNaN().count() == 0) {
+                                rows_wo_nans.push_back(j);
+                            }
+                        }
+
                         // reconstruct missing values in the beginning and end of thetrajectories if
                         // (rows_wo_nans[0] > 0)
                         _generate_circular_trajectory(individual, rows_wo_nans[0], rows_wo_nans[2],

@@ -94,10 +94,10 @@ int main(int argc, char** argv)
     std::vector<simple_nn::NeuralNet> nn(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
         nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(
-            positions.cols() + velocities.cols(), 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Gaussian>>(100, 100);
-        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 3); // dr cosdphi sindphi
+            positions.cols() + velocities.cols() - 2 + 1 + 2, 100);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        nn[b].add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(100, 2); // dr cosdphi sindphi
         Eigen::MatrixXd weights;
         archive.load(weights, path + "/nn_controller_weights_" + std::to_string(b) + ".dat");
         nn[b].set_weights(weights);
@@ -120,12 +120,26 @@ int main(int argc, char** argv)
     tools::removeCols(positions, rm);
     tools::removeCols(velocities, rm);
 
-    double radius = -1;
-    double phi = -1;
+    double x = 0;
+    double y = 0;
     Eigen::MatrixXd predictions(positions.rows(), 2);
     for (uint i = 0; i < positions.rows(); ++i) {
-        Eigen::MatrixXd sample(1, e_positions.cols() + e_velocities.cols());
-        sample << e_positions.row(i), e_velocities.row(i);
+        using distance_func_t
+            = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+        features::InterIndividualDistance<distance_func_t> iid;
+        iid(e_positions.row(i), timestep);
+        Eigen::MatrixXd ind_pos_t = e_positions.block(i, e_positions.cols() - 2, 1, 2);
+        polygons::Point p(ind_pos_t(0), ind_pos_t(1));
+        Eigen::MatrixXd dist_to_walls(1, 2);
+        polygons::CircularCorridor<Params> cc;
+        dist_to_walls << cc.distance_to_inner_wall(p), cc.distance_to_outer_wall(p);
+
+        Eigen::MatrixXd sample(1, e_positions.cols() + velocities.cols() + 1 + 2);
+        sample << positions.row(i),
+            velocities.row(i),
+            iid.get().block(0, 0, 1, 1),
+            dist_to_walls,
+            ind_pos_t;
 
         Eigen::MatrixXd pred;
 #ifdef USE_ORIGINAL_LABELS
@@ -141,11 +155,7 @@ int main(int argc, char** argv)
             else
                 pos_block = e_positions.block(i, 0, 2, e_positions.cols());
 
-            using distance_func_t
-                = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
-            features::InterIndividualDistance<distance_func_t> iid;
             features::Alignment align;
-            iid(e_positions.row(i), timestep);
             align(pos_block, timestep);
 
             Eigen::MatrixXd features(1, 2);
@@ -157,40 +167,32 @@ int main(int argc, char** argv)
 #endif
         pred = nn[labels(label_idx)].forward(sample.transpose()).transpose();
 
-        // std::cout << radius << " " << phi * 180 / M_PI << std::endl;
-
-        polygons::CircularCorridor<Params> cc;
-        double new_phi;
         if (i < 1) {
-            double x = e_positions(0, e_positions.cols() - 2) - cc.center().x();
-            double y = e_positions(0, e_positions.cols() - 1) - cc.center().y();
-            radius = std::sqrt(pow(x, 2) + pow(y, 2));
-            phi = std::fmod(std::atan2(y, x) + 2 * M_PI, 2 * M_PI);
+            x = e_positions(0, e_positions.cols() - 2);
+            y = e_positions(0, e_positions.cols() - 1);
         }
         else {
-            radius += pred(0) * timestep;
-            if (radius > cc.outer_radius())
-                radius = cc.inner_radius() + 0.05;
-            if (radius < cc.inner_radius())
-                radius = cc.inner_radius() + 0.05;
-
-            double dphi = std::atan2(pred(2) * timestep, pred(1) * timestep);
-            double thres = 22 * M_PI / 180. * timestep;
-            double diff = phi + dphi;
-            if (phi + dphi < 0)
-                diff = 2 * M_PI + phi + dphi;
-            else if (phi + dphi > 2 * M_PI)
-                diff = phi + dphi - 2 * M_PI;
-            if (abs(diff) > thres)
-                diff = sgn(dphi) * thres;
-            phi += diff;
+            double new_x = x + pred(0) * timestep;
+            double new_y = y + pred(1) * timestep;
+            polygons::Point p(new_x, new_y);
+            bool valid = cc.in_polygon(p);
+            if (valid) {
+                x = new_x;
+                y = new_y;
+            }
+            else {
+                // TODO: this doesn't work duh
+                // double phi = std::fmod(std::atan2(y, x) + 2 * M_PI, 2 * M_PI);
+                // double radius = std::sqrt(std::pow(x - cc.center().x(), 2.) + std::pow(y - cc.center().y(), 2.));
+                // limbo::tools::rgen_double_t rgen(0, 1);
+                // radius = rgen.rand() / 10 + cc.inner_radius();
+                // x = radius * std::cos(phi) + cc.center().x();
+                // y = radius * std::sin(phi) + cc.center().y();
+            }
         }
 
-        // std::cout << radius << " " << phi * 180 / M_PI << std::endl
-        //           << std::endl;
-
-        predictions(i, 0) = radius * std::cos(phi) + cc.center().x();
-        predictions(i, 1) = radius * std::sin(phi) + cc.center().y();
+        predictions(i, 0) = x;
+        predictions(i, 1) = y;
 
         if (i + 1 == positions.rows())
             continue;

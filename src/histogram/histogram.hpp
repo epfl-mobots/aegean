@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <utility>
 
 using namespace aegean::tools;
 
@@ -18,23 +19,35 @@ namespace aegean {
         public:
             template <typename T>
             Histogram(T a, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr)
-                : _num_bins(a), _bin_size(-1), _epsilon(0.0001), _archive(false) {}
+                : _num_bins(a), _bin_size(-1), _epsilon(0.0001), _custom_bounds(true), _archive(false) {}
 
             template <typename T>
             Histogram(T a, typename std::enable_if<std::is_floating_point<T>::value>::type* = nullptr)
-                : _num_bins(-1), _bin_size(a), _epsilon(0.0001), _archive(false) {}
+                : _num_bins(-1), _bin_size(a), _epsilon(0.0001), _custom_bounds(true), _archive(false) {}
+
+            Histogram(const std::pair<float, float>& bounds, double bin_size)
+                : _num_bins(-1), _bin_size(bin_size), _epsilon(0.0001), _custom_bounds(true), _archive(false)
+            {
+                double range = bounds.second - bounds.first;
+                _num_bins = std::ceil(range / _bin_size);
+            }
 
             void set_epsilon(double epsilon)
             {
                 _epsilon = epsilon;
             }
 
-            Eigen::MatrixXi operator()(const Eigen::MatrixXd& data)
+            Eigen::MatrixXd operator()(const Eigen::MatrixXd& data)
             {
-                if (_num_bins == -1)
-                    return _construct_by_bin_size(data);
-                else
-                    return _construct_by_num_bins(data);
+                if (_custom_bounds) {
+                    return _construct_hist(data);
+                }
+                else {
+                    if (_num_bins == -1)
+                        return _construct_by_bin_size(data);
+                    else
+                        return _construct_by_num_bins(data);
+                }
             }
 
             void save(const std::string& path = ".") const
@@ -50,26 +63,27 @@ namespace aegean {
             int _num_bins;
             double _bin_size;
             double _epsilon;
+            bool _custom_bounds;
             Archive _archive;
-            Eigen::MatrixXi _hist;
+            Eigen::MatrixXd _hist;
 
-            Eigen::MatrixXi _construct_by_bin_size(const Eigen::MatrixXd& data)
+            Eigen::MatrixXd _construct_by_bin_size(const Eigen::MatrixXd& data)
             {
                 double range = data.maxCoeff() - (data.minCoeff() - _epsilon);
                 _num_bins = std::ceil(range / _bin_size);
                 return _construct_hist(data);
             }
 
-            Eigen::MatrixXi _construct_by_num_bins(const Eigen::MatrixXd& data)
+            Eigen::MatrixXd _construct_by_num_bins(const Eigen::MatrixXd& data)
             {
                 double range = data.maxCoeff() - (data.minCoeff() - _epsilon);
                 _bin_size = range / _num_bins;
                 return _construct_hist(data);
             }
 
-            Eigen::MatrixXi _construct_hist(const Eigen::MatrixXd& data)
+            Eigen::MatrixXd _construct_hist(const Eigen::MatrixXd& data)
             {
-                Eigen::MatrixXi bins = Eigen::MatrixXi::Zero(1, _num_bins);
+                Eigen::MatrixXd bins = Eigen::MatrixXd::Zero(1, _num_bins);
                 // assume each column is a different dataset that needs to be
                 // assigned to the same bins
                 for (uint col = 0; col < data.cols(); ++col) {

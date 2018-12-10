@@ -182,12 +182,16 @@ int main(int argc, char** argv)
             }
             else {
                 // TODO: this doesn't work duh
-                // double phi = std::fmod(std::atan2(y, x) + 2 * M_PI, 2 * M_PI);
-                // double radius = std::sqrt(std::pow(x - cc.center().x(), 2.) + std::pow(y - cc.center().y(), 2.));
-                // limbo::tools::rgen_double_t rgen(0, 1);
-                // radius = rgen.rand() / 10 + cc.inner_radius();
-                // x = radius * std::cos(phi) + cc.center().x();
-                // y = radius * std::sin(phi) + cc.center().y();
+                double phi = std::fmod(std::atan2(y - cc.center().y(), x - cc.center().x()) + 2 * M_PI, 2 * M_PI);
+                double radius = std::sqrt(std::pow(x - cc.center().x(), 2.) + std::pow(y - cc.center().y(), 2.));
+                limbo::tools::rgen_double_t rgen(0, 1);
+                radius = rgen.rand() / 10 + cc.inner_radius();
+                std::cout << i << ": " << std::atan2(y, x) << " " << phi << " " << std::cos(phi) << " " << std::sin(phi) << std::endl;
+                std::cout << x << ", " << y << std::endl;
+                x = radius * std::cos(phi) + cc.center().x();
+                y = radius * std::sin(phi) + cc.center().y();
+                std::cout << x << ", " << y << std::endl
+                          << std::endl;
             }
         }
 

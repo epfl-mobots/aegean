@@ -81,6 +81,7 @@ def build(bld):
 
     libs = 'BOOST EIGEN'
 
+    # examples
     bld.program(features='cxx',
                 install_path=None,
                 source='examples/kmeans_example.cpp',
@@ -95,6 +96,14 @@ def build(bld):
                 uselib=libs,
                 target='persistence_example')
 
+    bld.program(features='cxx',
+                install_path=None,
+                source='examples/histogram_example.cpp',
+                includes='./src ./src/limbo/src',
+                uselib=libs,
+                target='histogram_example')
+
+    # exps
     bld.program(features='cxx',
                 install_path=None,
                 source='exp/zebra/zebra_etho_gen.cpp',

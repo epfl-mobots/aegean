@@ -50,13 +50,13 @@ namespace aegean {
                 }
             }
 
-            void save(const std::string& path = ".") const
+            void save(const std::string& filename, const std::string& path = ".") const
             {
                 assert((_num_bins > 0) && (_bin_size > 0) && "No data provided in order to construct the histogram");
-                std::ofstream ofs(path + "/histogram_info.dat");
+                std::ofstream ofs(path + "/" + filename + "_info.dat");
                 ofs << "Number of bins - Bin size" << std::endl;
                 ofs << _num_bins << " " << _bin_size << std::endl;
-                _archive.save(_hist, path + "/histogram_bins.dat");
+                _archive.save(_hist, path + "/" + filename + "_bins");
             }
 
         protected:

@@ -29,7 +29,9 @@ namespace aegean {
                 : _num_bins(-1), _bin_size(bin_size), _epsilon(0.0001), _custom_bounds(true), _archive(false)
             {
                 double range = bounds.second - bounds.first;
-                _num_bins = std::ceil(range / _bin_size);
+                _lbound = bounds.first;
+                _ubound = bounds.second;
+                _num_bins = range / _bin_size;
             }
 
             void set_epsilon(double epsilon)
@@ -66,11 +68,15 @@ namespace aegean {
             bool _custom_bounds;
             Archive _archive;
             Eigen::MatrixXd _hist;
+            double _lbound;
+            double _ubound;
 
             Eigen::MatrixXd _construct_by_bin_size(const Eigen::MatrixXd& data)
             {
                 double range = data.maxCoeff() - (data.minCoeff() - _epsilon);
                 _num_bins = std::ceil(range / _bin_size);
+                _lbound = data.minCoeff();
+                _ubound = data.maxCoeff();
                 return _construct_hist(data);
             }
 
@@ -78,6 +84,8 @@ namespace aegean {
             {
                 double range = data.maxCoeff() - (data.minCoeff() - _epsilon);
                 _bin_size = range / _num_bins;
+                _lbound = data.minCoeff();
+                _ubound = data.maxCoeff();
                 return _construct_hist(data);
             }
 
@@ -88,7 +96,7 @@ namespace aegean {
                 // assigned to the same bins
                 for (uint col = 0; col < data.cols(); ++col) {
                     for (int bin = 0; bin < _num_bins; ++bin) {
-                        double lb = data.minCoeff() + _bin_size * bin;
+                        double lb = _lbound + _bin_size * bin;
                         double ub = lb + _bin_size;
                         int num_le_lb = (data.col(col).array() < lb).count();
                         int num_le_ub = (data.col(col).array() <= ub).count();

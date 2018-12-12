@@ -5,7 +5,8 @@ import sys
 import os
 import fnmatch
 import glob
-sys.path.insert(0, sys.path[0] + '/waf_tools')
+sys.path.insert(0, sys.path[0] + '/src/limbo/waf_tools')
+sys.path.insert(0, sys.path[1] + '/waf_tools')
 
 VERSION = '0.0.1'
 APPNAME = 'aegean'
@@ -24,6 +25,7 @@ def options(opt):
     opt.load('compiler_c')
     opt.load('boost')
     opt.load('eigen')
+    opt.load('libcmaes')
 
     opt.add_option('--tests', action='store_true',
                    help='compile tests or not', dest='tests')
@@ -35,24 +37,26 @@ def configure(conf):
     conf.load('waf_unit_test')
     conf.load('boost')
     conf.load('eigen')
+    conf.load('libcmaes')
 
     conf.check(lib='pthread')
     conf.check_boost(
         lib='regex system filesystem unit_test_framework', min_version='1.46')
     conf.check_eigen(required=True)
+    conf.check_libcmaes()
 
     if conf.env.CXX_NAME in ["icc", "icpc"]:
         common_flags = "-Wall -std=c++11"
         opt_flags = " -O3 -xHost -mtune=native -unroll -g"
     elif conf.env.CXX_NAME in ["clang"]:
         common_flags = "-Wall -std=c++11"
-        opt_flags = " -O3 -march=native -g -faligned-new"
+        opt_flags = " -O3 -g -faligned-new"
     else:
         if int(conf.env['CC_VERSION'][0]+conf.env['CC_VERSION'][1]) < 47:
             common_flags = "-Wall -std=c++0x"
         else:
             common_flags = "-Wall -std=c++11"
-        opt_flags = " -O3 -march=native -g -faligned-new"
+        opt_flags = " -O3 -g -faligned-new"
 
     all_flags = common_flags + opt_flags
     conf.env['CXXFLAGS'] = conf.env['CXXFLAGS'] + all_flags.split(' ')
@@ -147,5 +151,13 @@ def build(bld):
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs,
                 target='zebra_virtual_sim')
+
+    bld.program(features='cxx',
+                install_path=None,
+                defines=['USE_LIBCMAES'],
+                source='exp/zebra/zebra_cmaes_nn_train.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src',
+                uselib=libs + ' LIBCMAES',
+                target='zebra_cmaes_nn_train')
 
     bld.add_post_fun(summary)

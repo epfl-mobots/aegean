@@ -31,12 +31,12 @@ namespace aegean {
                 {
                 }
 
-                double min_distace(const Point& p) override
+                double min_distance(const Point& p) override
                 {
                     return std::min(distance_to_inner_wall(p), distance_to_outer_wall(p));
                 }
 
-                double max_distace(const Point& p) override
+                double max_distance(const Point& p) override
                 {
                     return std::max(distance_to_inner_wall(p), distance_to_outer_wall(p));
                 }

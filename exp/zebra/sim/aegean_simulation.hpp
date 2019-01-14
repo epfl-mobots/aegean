@@ -16,32 +16,41 @@ namespace simu {
         struct AegeanSimSettings : public Settings {
             AegeanSimSettings()
             {
-                sim_time = 28800;
+                sim_time = 25000;
                 stats_enabled = false; // don't want stats by default
+                timestep = 0.0666666666667;
             }
 
-            int num_fish = 0;
-            int num_robot = 3;
+            int num_agents = 3;
+            int num_fish = -1;
+            int num_robot = -1;
         };
-
-        using IndividualPtr = std::shared_ptr<AegeanIndividual>;
 
         class AegeanSimulation : public Simulation {
         public:
-            AegeanSimulation(simple_nn::NeuralNet network);
+            AegeanSimulation(const simple_nn::NeuralNet& network, std::shared_ptr<Eigen::MatrixXd> positions, std::shared_ptr<Eigen::MatrixXd> velocities, const std::vector<int>& robot_idcs = {});
 
             void spin_once() override;
 
+            const std::shared_ptr<const Eigen::MatrixXd> orig_positions() const;
+            std::shared_ptr<Eigen::MatrixXd> orig_positions();
+            const std::shared_ptr<const Eigen::MatrixXd> orig_velocities() const;
+            std::shared_ptr<Eigen::MatrixXd> orig_velocities();
             std::vector<IndividualPtr> individuals() const;
             std::vector<IndividualPtr>& individuals();
+            AegeanSimSettings aegean_sim_settings() const;
+            AegeanSimSettings& aegean_sim_settings();
 
         protected:
             void _init();
 
             AegeanSimSettings _aegean_sim_settings;
             std::vector<IndividualPtr> _individuals;
+
             simple_nn::NeuralNet _network;
-            int _num_agents;
+            std::shared_ptr<Eigen::MatrixXd> _positions;
+            std::shared_ptr<Eigen::MatrixXd> _velocities;
+            std::vector<int> _robot_idcs;
         };
 
         using AegeanSimulationPtr = std::shared_ptr<AegeanSimulation>;

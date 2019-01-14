@@ -4,3 +4,6 @@
 [submodule "src/limbo"]
 	path = src/limbo
 	url = git@github.com:resibots/limbo.git
+[submodule "src/simu"]
+	path = src/simu
+	url = git@github.com:epfl-mobots/samsar.git

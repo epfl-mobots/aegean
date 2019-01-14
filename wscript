@@ -26,6 +26,7 @@ def options(opt):
     opt.load('boost')
     opt.load('eigen')
     opt.load('libcmaes')
+    opt.load('simu')
 
     opt.add_option('--tests', action='store_true',
                    help='compile tests or not', dest='tests')
@@ -38,12 +39,14 @@ def configure(conf):
     conf.load('boost')
     conf.load('eigen')
     conf.load('libcmaes')
+    conf.load('simu')
 
     conf.check(lib='pthread')
     conf.check_boost(
         lib='regex system filesystem unit_test_framework', min_version='1.46')
     conf.check_eigen(required=True)
     conf.check_libcmaes()
+    conf.check_simu()
 
     if conf.env.CXX_NAME in ["icc", "icpc"]:
         common_flags = "-Wall -std=c++11"
@@ -159,5 +162,28 @@ def build(bld):
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs + ' LIBCMAES',
                 target='zebra_cmaes_nn_train')
+
+    srcs = []
+    incs = ['exp/zebra/sim/', 'src/nn/src', 'src/limbo/src']
+    nodes = bld.path.ant_glob('exp/zebra/sim/*.cpp', src=True, dir=False)
+    for n in nodes:
+        srcs += [n.bldpath()]
+
+    bld.shlib(features='cxx cxxshlib',
+              source=srcs,
+              includes=incs,
+              cxxflags=['-O3', '-fPIC', '-rdynamic'],
+              uselib='SIMU EIGEN',
+              target='aegean_simu')
+    bld.env.LIBPATH_AEGEAN_SIMU = [os.getcwd() + '/build']
+    bld.env.SHLIB_AEGEAN_SIMU = ['aegean_simu']
+    bld.env.LIB_AEGEAN_SIMU = ['aegean_simu']
+
+    bld.program(features='cxx',
+                install_path=None,
+                source='exp/zebra/zebra_sim.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src ./src/simu/src',
+                use='SIMU AEGEAN_SIMU ' + libs,
+                target='zebra_sim')
 
     bld.add_post_fun(summary)

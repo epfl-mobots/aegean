@@ -169,15 +169,15 @@ def build(bld):
     for n in nodes:
         srcs += [n.bldpath()]
 
-    bld.shlib(features='cxx cxxshlib',
+    bld.shlib(features='cxx cxxstlib',
               source=srcs,
               includes=incs,
               cxxflags=['-O3', '-fPIC', '-rdynamic'],
               uselib='SIMU EIGEN',
               target='aegean_simu')
     bld.env.LIBPATH_AEGEAN_SIMU = [os.getcwd() + '/build']
-    bld.env.SHLIB_AEGEAN_SIMU = ['aegean_simu']
-    bld.env.LIB_AEGEAN_SIMU = ['aegean_simu']
+    bld.env.STLIB_AEGEAN_SIMU = ['aegean_simu']
+    # bld.env.LIB_AEGEAN_SIMU = ['aegean_simu']
 
     bld.program(features='cxx',
                 install_path=None,

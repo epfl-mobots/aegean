@@ -48,11 +48,11 @@ def check_simu(conf, *k, **kw):
         libs_check = [conf.options.simu_libs]
     conf.start_msg('Checking for simu libs')
     try:
-        res = conf.find_file('libsimu.so', libs_check)
-        lib = res[:-len('libsimu.so')-1]
+        res = conf.find_file('libsimu.a', libs_check)
+        lib = res[:-len('libsimu.a')-1]
         conf.env.LIBPATH_SIMU = [lib]
-        conf.env.SHLIB_SIMU = ['simu']
-        conf.env.LIB_SIMU = ['simu']
+        conf.env.STLIB_SIMU = ['simu']
+        # conf.env.LIB_SIMU = ['simu']
         conf.end_msg(lib)
     except:
         if required:

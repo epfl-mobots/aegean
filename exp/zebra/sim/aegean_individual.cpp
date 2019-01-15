@@ -1,33 +1,69 @@
 #include "aegean_individual.hpp"
-
 #include "aegean_simulation.hpp"
+
+#include <tools/polygons/circular_corridor.hpp>
+#include <tools/reconstruction/cspace.hpp>
+#include <features/alignment.hpp>
+#include <features/inter_individual_distance.hpp>
 
 namespace simu {
     namespace simulation {
-        AegeanIndividual::AegeanIndividual(
-            // const Eigen::MatrixXd& orig_positions,
-            // const Eigen::MatrixXd& orig_velocities
-        )
+
+        using namespace aegean;
+
+        struct Params {
+            struct CircularCorridor : public defaults::CircularCorridor {
+            };
+        };
+
+        AegeanIndividual::AegeanIndividual()
         {
-            // _is_robot = true;
-            // _position.x = _orig_positions(0, 0);
-            // _position.y = _orig_positions(0, 1);
-            // _speed.vx = _orig_velocities(0, 0);
-            // _speed.vy = _orig_velocities(0, 1);
+            _is_robot = true;
         }
 
         AegeanIndividual::~AegeanIndividual() {}
 
         void AegeanIndividual::stimulate(const std::shared_ptr<Simulation> sim)
         {
-            // if (_is_robot) {
-            //     auto asim = std::dynamic_pointer_cast<AegeanSimulation>(sim);
-            //     for (const IndividualPtr ind : asim->individuals()) {
-            //         if (_id == ind->id())
-            //             continue;
-            //         // TODO: get nn prediction
-            //     }
-            // }
+            using namespace tools;
+
+            if (_is_robot) {
+                auto asim = std::dynamic_pointer_cast<AegeanSimulation>(sim);
+
+                using distance_func_t
+                    = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+
+                int num_individuals = asim->individuals().size();
+
+                Eigen::MatrixXd pos(1, (num_individuals - 1) * 2);
+                Eigen::MatrixXd vel(1, (num_individuals - 1) * 2);
+                int idx = 0;
+                for (const IndividualPtr ind : asim->individuals()) {
+                    if (_id == ind->id())
+                        continue;
+                    pos(idx) = ind->position().x;
+                    pos(idx + 1) = ind->position().y;
+                    vel(idx) = ind->speed().vx;
+                    vel(idx + 1) = ind->speed().vy;
+                    idx += 2;
+                }
+                Eigen::MatrixXd epos(1, pos.cols() + 2);
+                epos << pos, _position.x, _position.y;
+                features::InterIndividualDistance<distance_func_t> iid;
+                iid(epos, asim->aegean_sim_settings().timestep);
+                polygons::Point p(_position.x, _position.y);
+                Eigen::MatrixXd dist_to_walls(1, 2);
+                polygons::CircularCorridor<Params> cc;
+                dist_to_walls << cc.distance_to_inner_wall(p), cc.distance_to_outer_wall(p);
+
+                Eigen::MatrixXd nn_input(1, (num_individuals - 1) * 4 /*pos & vel*/ + 3 /*feat set*/ + 2 /*focal pos*/);
+                nn_input << pos, vel,
+                    iid.get().row(0),
+                    dist_to_walls,
+                    _position.x, _position.y;
+
+                // auto net = asim->network();
+            }
         }
 
         void AegeanIndividual::move(const std::shared_ptr<Simulation> sim)

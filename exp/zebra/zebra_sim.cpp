@@ -14,11 +14,19 @@ int main(int argc, char** argv)
     // int exclude_idx = std::stoi(argv[3]);
     Archive archive(false);
 
-    uint centroids;
+    uint num_behaviours;
+    {
+        std::ifstream ifs;
+        ifs.open(path + "/num_behaviours.dat");
+        ifs >> num_behaviours;
+        ifs.close();
+    }
+
+    uint num_centroids;
     {
         std::ifstream ifs;
         ifs.open(path + "/num_centroids.dat");
-        ifs >> centroids;
+        ifs >> num_centroids;
         ifs.close();
     }
 
@@ -38,19 +46,27 @@ int main(int argc, char** argv)
         ifs.close();
     }
 
-    uint aggregate_window = window_in_seconds * (fps / centroids);
-    float timestep = static_cast<float>(centroids) / fps;
+    uint aggregate_window = window_in_seconds * (fps / num_centroids);
+    float timestep = static_cast<float>(num_centroids) / fps;
+
+    simu::simulation::NNVec nn(num_behaviours);
+    for (uint b = 0; b < num_behaviours; ++b) {
+        nn[b] = std::make_shared<simple_nn::NeuralNet>();
+        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(10 + 1 + 2, 100);
+        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
+        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(100, 2);
+        Eigen::MatrixXd weights;
+        archive.load(weights, path + "/nn_controller_weights_" + std::to_string(b) + ".dat");
+        nn[b]->set_weights(weights);
+    }
 
     Eigen::MatrixXd positions, velocities;
-    // std::shared_ptr<Eigen::MatrixXd> positions = std::make_shared<Eigen::MatrixXd>();
-    // std::shared_ptr<Eigen::MatrixXd> velocities = std::make_shared<Eigen::MatrixXd>();
     archive.load(positions, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
     archive.load(velocities, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
 
-    simple_nn::NeuralNet network;
-    // TODO: add layers here
-
-    simu::simulation::AegeanSimulation sim(network, std::make_shared<Eigen::MatrixXd>(positions), std::make_shared<Eigen::MatrixXd>(velocities));
+    simu::simulation::AegeanSimulation sim(nn, std::make_shared<Eigen::MatrixXd>(positions), std::make_shared<Eigen::MatrixXd>(velocities),
+        {0});
     // sim.spin_once();
     sim.spin();
 

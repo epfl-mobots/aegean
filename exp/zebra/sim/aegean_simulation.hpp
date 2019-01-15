@@ -26,20 +26,29 @@ namespace simu {
             int num_robot = -1;
         };
 
+        using NNVec = std::vector<std::shared_ptr<simple_nn::NeuralNet>>;
+
         class AegeanSimulation : public Simulation {
         public:
-            AegeanSimulation(const simple_nn::NeuralNet& network, std::shared_ptr<Eigen::MatrixXd> positions, std::shared_ptr<Eigen::MatrixXd> velocities, const std::vector<int>& robot_idcs = {});
+            AegeanSimulation(NNVec, std::shared_ptr<Eigen::MatrixXd> positions, std::shared_ptr<Eigen::MatrixXd> velocities, const std::vector<int>& robot_idcs = {}, const std::vector<int>& labels = {});
 
             void spin_once() override;
 
+            const NNVec network() const;
+
             const std::shared_ptr<const Eigen::MatrixXd> orig_positions() const;
             std::shared_ptr<Eigen::MatrixXd> orig_positions();
+
             const std::shared_ptr<const Eigen::MatrixXd> orig_velocities() const;
             std::shared_ptr<Eigen::MatrixXd> orig_velocities();
+
             std::vector<IndividualPtr> individuals() const;
             std::vector<IndividualPtr>& individuals();
+
             AegeanSimSettings aegean_sim_settings() const;
             AegeanSimSettings& aegean_sim_settings();
+
+            bool has_labels() const;
 
         protected:
             void _init();
@@ -47,10 +56,11 @@ namespace simu {
             AegeanSimSettings _aegean_sim_settings;
             std::vector<IndividualPtr> _individuals;
 
-            simple_nn::NeuralNet _network;
+            NNVec _network;
             std::shared_ptr<Eigen::MatrixXd> _positions;
             std::shared_ptr<Eigen::MatrixXd> _velocities;
             std::vector<int> _robot_idcs;
+            std::vector<int> _labels;
         };
 
         using AegeanSimulationPtr = std::shared_ptr<AegeanSimulation>;

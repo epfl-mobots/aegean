@@ -12,10 +12,7 @@ namespace simu {
 
         class AegeanIndividual : public Individual<double, double> {
         public:
-            AegeanIndividual(
-                // const Eigen::MatrixXd& orig_positions,
-                // const Eigen::MatrixXd& orig_velocities
-            );
+            AegeanIndividual();
             virtual ~AegeanIndividual();
 
             virtual void stimulate(const std::shared_ptr<Simulation> sim) override;

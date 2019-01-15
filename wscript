@@ -164,7 +164,7 @@ def build(bld):
                 target='zebra_cmaes_nn_train')
 
     srcs = []
-    incs = ['exp/zebra/sim/', 'src/nn/src', 'src/limbo/src']
+    incs = ['exp/zebra/sim/', 'src/nn/src', 'src/limbo/src', 'src/']
     nodes = bld.path.ant_glob('exp/zebra/sim/*.cpp', src=True, dir=False)
     for n in nodes:
         srcs += [n.bldpath()]

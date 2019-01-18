@@ -6,6 +6,7 @@ namespace simu {
             std::shared_ptr<KMeans<>> kmeans,
             std::shared_ptr<Eigen::MatrixXd> positions,
             std::shared_ptr<Eigen::MatrixXd> velocities,
+            std::shared_ptr<Eigen::MatrixXd> predictions,
             std::shared_ptr<Eigen::MatrixXd> generated_positions,
             const std::vector<int>& robot_idcs,
             const Eigen::MatrixXd& labels)
@@ -14,6 +15,7 @@ namespace simu {
               _kmeans(kmeans),
               _positions(positions),
               _velocities(velocities),
+              _predictions(predictions),
               _generated_positions(generated_positions),
               _robot_idcs(robot_idcs),
               _labels(labels)
@@ -73,8 +75,8 @@ namespace simu {
             if (_labels.size()) {
                 assert(_labels.rows() == _positions->rows());
             }
-            _sim_settings.sim_time = _aegean_sim_settings.sim_time;
             _sim_settings.stats_enabled = _aegean_sim_settings.stats_enabled;
+            sim_time() = _positions->rows();
 
             _individuals.resize(static_cast<size_t>(_aegean_sim_settings.num_agents));
             for (size_t i = 0; i < _individuals.size(); ++i) {
@@ -91,7 +93,8 @@ namespace simu {
                 }
             }
 
-            *_generated_positions = Eigen::MatrixXd::Zero(_aegean_sim_settings.sim_time + 1 /*last timeste prediction*/, _positions->cols());
+            *_generated_positions = Eigen::MatrixXd::Zero(sim_time(), _positions->cols());
+            *_predictions = Eigen::MatrixXd::Ones(sim_time(), _aegean_sim_settings.num_agents) * -1;
         }
 
         const NNVec AegeanSimulation::network() const { return _network; }
@@ -104,6 +107,9 @@ namespace simu {
 
         const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::generated_positions() const { return _generated_positions; }
         std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::generated_positions() { return _generated_positions; }
+
+        const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::predictions() const { return _predictions; }
+        std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::predictions() { return _predictions; }
 
         std::vector<IndividualPtr> AegeanSimulation::individuals() const { return _individuals; }
         std::vector<IndividualPtr>& AegeanSimulation::individuals() { return _individuals; }

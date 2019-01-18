@@ -4,9 +4,7 @@
 #include "aegean_individual.hpp"
 #include <simulation/simulation.hpp>
 
-#include <simple_nn/loss.hpp>
 #include <simple_nn/neural_net.hpp>
-#include <limbo/opt/adam.hpp>
 #include <clustering/kmeans.hpp>
 
 #include <Eigen/Core>
@@ -17,7 +15,6 @@ namespace simu {
         struct AegeanSimSettings : public Settings {
             AegeanSimSettings()
             {
-                sim_time = 25000;
                 stats_enabled = false; // don't want stats by default
                 timestep = 0.0666666666667;
             }
@@ -38,6 +35,7 @@ namespace simu {
                 std::shared_ptr<KMeans<>> kmeans,
                 std::shared_ptr<Eigen::MatrixXd> positions,
                 std::shared_ptr<Eigen::MatrixXd> velocities,
+                std::shared_ptr<Eigen::MatrixXd> predictions,
                 std::shared_ptr<Eigen::MatrixXd> generated_positions, const std::vector<int>& robot_idcs = {},
                 const Eigen::MatrixXd& labels = Eigen::MatrixXd());
 
@@ -53,6 +51,9 @@ namespace simu {
 
             const std::shared_ptr<const Eigen::MatrixXd> generated_positions() const;
             std::shared_ptr<Eigen::MatrixXd> generated_positions();
+
+            const std::shared_ptr<const Eigen::MatrixXd> predictions() const;
+            std::shared_ptr<Eigen::MatrixXd> predictions();
 
             std::vector<IndividualPtr> individuals() const;
             std::vector<IndividualPtr>& individuals();
@@ -75,6 +76,7 @@ namespace simu {
             std::shared_ptr<KMeans<>> _kmeans;
             std::shared_ptr<Eigen::MatrixXd> _positions;
             std::shared_ptr<Eigen::MatrixXd> _velocities;
+            std::shared_ptr<Eigen::MatrixXd> _predictions;
             std::shared_ptr<Eigen::MatrixXd> _generated_positions;
 
             std::vector<int> _robot_idcs;

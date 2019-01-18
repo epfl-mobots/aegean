@@ -88,13 +88,14 @@ namespace simu {
                     features << iid.get()(0), align.get()(row_idx);
                     auto km = asim->kmeans();
                     label = km->predict(features)(0);
+                    (*asim->predictions())(asim->iteration(), _id) = label;
                 }
 
-                Eigen::MatrixXd prediction;
-                prediction = nets[label]->forward(nn_input.transpose()).transpose();
+                Eigen::MatrixXd pos_prediction;
+                pos_prediction = nets[label]->forward(nn_input.transpose()).transpose();
 
-                _desired_position.x = _position.x + prediction(0);
-                _desired_position.y = _position.y + prediction(1);
+                _desired_position.x = _position.x + pos_prediction(0);
+                _desired_position.y = _position.y + pos_prediction(1);
                 p.x() = _desired_position.x;
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);

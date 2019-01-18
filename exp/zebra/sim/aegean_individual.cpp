@@ -3,8 +3,10 @@
 
 #include <tools/polygons/circular_corridor.hpp>
 #include <tools/reconstruction/cspace.hpp>
+#include <tools/mathtools.hpp>
 #include <features/alignment.hpp>
 #include <features/inter_individual_distance.hpp>
+#include <clustering/kmeans.hpp>
 
 namespace simu {
     namespace simulation {
@@ -62,7 +64,44 @@ namespace simu {
                     dist_to_walls,
                     _position.x, _position.y;
 
-                // auto net = asim->network();
+                auto nets = asim->network();
+                uint label;
+                if (asim->has_labels()) {
+                    label = asim->labels()(static_cast<int>(asim->iteration()
+                        / asim->aegean_sim_settings().aggregate_window));
+                }
+                else {
+                    Eigen::MatrixXd pos_block;
+                    if (asim->iteration() > 0) {
+                        pos_block = asim->generated_positions()->block(asim->iteration() - 1, 0, 2, asim->generated_positions()->cols());
+                    }
+                    else {
+                        pos_block = asim->orig_positions()->block(0, 0, 2, asim->generated_positions()->cols());
+                    }
+
+                    features::Alignment align;
+                    align(pos_block, asim->aegean_sim_settings().timestep);
+
+                    Eigen::MatrixXd features(1, 2);
+                    uint row_idx;
+                    (asim->iteration() == 0) ? row_idx = 0 : row_idx = align.get().rows() - 2;
+                    features << iid.get()(0), align.get()(row_idx);
+                    auto km = asim->kmeans();
+                    label = km->predict(features)(0);
+                }
+
+                Eigen::MatrixXd prediction;
+                prediction = nets[label]->forward(nn_input.transpose()).transpose();
+
+                _desired_position.x = _position.x + prediction(0);
+                _desired_position.y = _position.y + prediction(1);
+                p.x() = _desired_position.x;
+                p.y() = _desired_position.y;
+                bool valid = cc.in_polygon(p);
+                if (!valid) {
+                    // TODO: if not valid do something smarter...
+                    _desired_position = _position;
+                }
             }
         }
 
@@ -71,7 +110,6 @@ namespace simu {
             auto asim = std::dynamic_pointer_cast<AegeanSimulation>(sim);
             if (_is_robot) {
                 float dt = asim->aegean_sim_settings().timestep;
-                // TODO: need to check setup bounds ?
                 _speed.vx = (_desired_position.x - _position.x) / dt;
                 _speed.vy = (_desired_position.y - _position.y) / dt;
                 _position = _desired_position;

@@ -17,6 +17,9 @@ namespace simu {
 
             virtual void stimulate(const std::shared_ptr<Simulation> sim) override;
             virtual void move(const std::shared_ptr<Simulation> sim) override;
+
+        protected:
+            Position<position_type_t> _desired_position;
         };
 
         using AegeanIndividualPtr = std::shared_ptr<AegeanIndividual>;

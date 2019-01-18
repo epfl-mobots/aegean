@@ -26,7 +26,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 60000);
+        BO_PARAM(int, iterations, 50);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate

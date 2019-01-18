@@ -2,6 +2,7 @@
 
 #include <simple_nn/neural_net.hpp>
 #include <tools/archive.hpp>
+#include <clustering/kmeans.hpp>
 
 using namespace aegean;
 using namespace tools;
@@ -52,7 +53,7 @@ int main(int argc, char** argv)
     simu::simulation::NNVec nn(num_behaviours);
     for (uint b = 0; b < num_behaviours; ++b) {
         nn[b] = std::make_shared<simple_nn::NeuralNet>();
-        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(10 + 1 + 2, 100);
+        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(10 + 10 + 1 + 2 + 2, 100);
         nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
         nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
         nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(100, 2);
@@ -61,14 +62,26 @@ int main(int argc, char** argv)
         nn[b]->set_weights(weights);
     }
 
-    Eigen::MatrixXd positions, velocities;
+    Eigen::MatrixXd positions, velocities, cluster_centers;
     archive.load(positions, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
     archive.load(velocities, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
+    archive.load(cluster_centers, path + "/centroids_kmeans.dat");
+    aegean::clustering::KMeans<> km(cluster_centers);
 
-    simu::simulation::AegeanSimulation sim(nn, std::make_shared<Eigen::MatrixXd>(positions), std::make_shared<Eigen::MatrixXd>(velocities),
+    std::shared_ptr<Eigen::MatrixXd> generated_positions = std::make_shared<Eigen::MatrixXd>();
+
+    simu::simulation::AegeanSimulation sim(nn,
+        std::make_shared<aegean::clustering::KMeans<>>(km),
+        std::make_shared<Eigen::MatrixXd>(positions),
+        std::make_shared<Eigen::MatrixXd>(velocities),
+        generated_positions,
         {0});
+    sim.aegean_sim_settings().aggregate_window = aggregate_window;
+    sim.aegean_sim_settings().timestep = timestep;
     // sim.spin_once();
     sim.spin();
+
+    std::cout << generated_positions->topRows(10) << std::endl;
 
     return 0;
 }

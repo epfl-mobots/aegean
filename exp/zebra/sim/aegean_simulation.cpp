@@ -2,10 +2,19 @@
 
 namespace simu {
     namespace simulation {
-        AegeanSimulation::AegeanSimulation(NNVec network, std::shared_ptr<Eigen::MatrixXd> positions, std::shared_ptr<Eigen::MatrixXd> velocities, const std::vector<int>& robot_idcs, const std::vector<int>& labels)
+        AegeanSimulation::AegeanSimulation(NNVec network,
+            std::shared_ptr<KMeans<>> kmeans,
+            std::shared_ptr<Eigen::MatrixXd> positions,
+            std::shared_ptr<Eigen::MatrixXd> velocities,
+            std::shared_ptr<Eigen::MatrixXd> generated_positions,
+            const std::vector<int>& robot_idcs,
+            const Eigen::MatrixXd& labels)
             : Simulation(false),
+              _network(network),
+              _kmeans(kmeans),
               _positions(positions),
               _velocities(velocities),
+              _generated_positions(generated_positions),
               _robot_idcs(robot_idcs),
               _labels(labels)
         {
@@ -16,7 +25,6 @@ namespace simu {
 
             _init();
             Simulation::_init();
-            _network = network;
         }
 
         void AegeanSimulation::spin_once()
@@ -29,9 +37,17 @@ namespace simu {
             std::mt19937 g(rd());
             std::shuffle(idcs.begin(), idcs.end(), g);
 
+            // update the current positions acccording to
+            // the most recent prediction
+            for (const int idx : idcs) {
+                (*_generated_positions)(_iteration, idx * 2) = _individuals[idx]->position().x;
+                (*_generated_positions)(_iteration, idx * 2 + 1) = _individuals[idx]->position().y;
+            }
+
             // stimulate the fish to drive their movement decisions
-            for (const int idx : idcs)
-                _individuals[static_cast<size_t>(idx)]->stimulate(std::make_shared<AegeanSimulation>(*this));
+            for (const int idx : idcs) {
+                _individuals[idx]->stimulate(std::make_shared<AegeanSimulation>(*this));
+            }
 
             // apply intuitions and move accordingly
             for (const int idx : idcs)
@@ -46,12 +62,16 @@ namespace simu {
 
         void AegeanSimulation::_init()
         {
+            _aegean_sim_settings.num_agents = static_cast<int>(_positions->cols() / 2);
             _aegean_sim_settings.num_robot = _robot_idcs.size();
             _aegean_sim_settings.num_fish = _aegean_sim_settings.num_agents - _robot_idcs.size();
             assert(_aegean_sim_settings.num_fish > 0);
             assert(_aegean_sim_settings.num_agents == _aegean_sim_settings.num_robot + _aegean_sim_settings.num_fish);
             if (_robot_idcs.size()) {
                 assert(_aegean_sim_settings.num_agents >= *std::max_element(std::begin(_robot_idcs), std::end(_robot_idcs)));
+            }
+            if (_labels.size()) {
+                assert(_labels.rows() == _positions->rows());
             }
             _sim_settings.sim_time = _aegean_sim_settings.sim_time;
             _sim_settings.stats_enabled = _aegean_sim_settings.stats_enabled;
@@ -60,6 +80,8 @@ namespace simu {
             for (size_t i = 0; i < _individuals.size(); ++i) {
                 _individuals[i] = std::make_shared<AegeanIndividual>();
                 _individuals[i]->id() = static_cast<int>(i);
+                _individuals[i]->position().x = (*_positions)(0, i * 2);
+                _individuals[i]->position().y = (*_positions)(0, i * 2 + 1);
 
                 if (_robot_idcs.size() && std::find(_robot_idcs.begin(), _robot_idcs.end(), i) != _robot_idcs.end()) {
                     _individuals[i]->is_robot() = true;
@@ -68,6 +90,8 @@ namespace simu {
                     _individuals[i]->is_robot() = false;
                 }
             }
+
+            *_generated_positions = Eigen::MatrixXd::Zero(_aegean_sim_settings.sim_time + 1 /*last timeste prediction*/, _positions->cols());
         }
 
         const NNVec AegeanSimulation::network() const { return _network; }
@@ -77,6 +101,9 @@ namespace simu {
 
         const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::orig_velocities() const { return _velocities; }
         std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::orig_velocities() { return _velocities; }
+
+        const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::generated_positions() const { return _generated_positions; }
+        std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::generated_positions() { return _generated_positions; }
 
         std::vector<IndividualPtr> AegeanSimulation::individuals() const { return _individuals; }
         std::vector<IndividualPtr>& AegeanSimulation::individuals() { return _individuals; }
@@ -88,6 +115,10 @@ namespace simu {
         {
             return (_labels.size() > 0) ? true : false;
         }
+
+        const Eigen::MatrixXd& AegeanSimulation::labels() const { return _labels; }
+
+        const std::shared_ptr<KMeans<>> AegeanSimulation::kmeans() const { return _kmeans; }
 
     } // namespace simulation
 } // namespace simu

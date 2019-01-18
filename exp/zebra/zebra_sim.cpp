@@ -20,6 +20,7 @@ struct Params {
 
 int main(int argc, char** argv)
 {
+    // load experiment parameters
     assert(argc == 4);
     std::string path(argv[1]);
     int exp_num = std::stoi(argv[2]);
@@ -74,6 +75,9 @@ int main(int argc, char** argv)
         nn[b]->set_weights(weights);
     }
 
+    // we load the experiment positions, velocities, etc
+    // and wrap them in shared pointers to avoid continuous
+    // context switching in the simulation (we have very big matrices)
     Eigen::MatrixXd positions, velocities, cluster_centers;
     archive.load(positions, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
     archive.load(velocities, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
@@ -96,6 +100,7 @@ int main(int argc, char** argv)
     // sim.spin_once();
     sim.spin();
 
+    // store the output results
     archive.save(predictions->col(exclude_idx),
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx));
 

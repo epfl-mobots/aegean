@@ -94,6 +94,7 @@ namespace simu {
                 Eigen::MatrixXd pos_prediction;
                 pos_prediction = nets[label]->forward(nn_input.transpose()).transpose();
 
+                // TODO: add some noise
                 _desired_position.x = _position.x + pos_prediction(0);
                 _desired_position.y = _position.y + pos_prediction(1);
                 p.x() = _desired_position.x;

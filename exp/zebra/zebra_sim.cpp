@@ -85,6 +85,7 @@ int main(int argc, char** argv)
     aegean::clustering::KMeans<> km(cluster_centers);
 
     std::shared_ptr<Eigen::MatrixXd> generated_positions = std::make_shared<Eigen::MatrixXd>();
+    std::shared_ptr<Eigen::MatrixXd> generated_velocities = std::make_shared<Eigen::MatrixXd>();
     std::shared_ptr<Eigen::MatrixXd> predictions = std::make_shared<Eigen::MatrixXd>();
 
     simu::simulation::AegeanSimulation sim(nn,
@@ -93,6 +94,7 @@ int main(int argc, char** argv)
         std::make_shared<Eigen::MatrixXd>(velocities),
         predictions,
         generated_positions,
+        generated_velocities,
         {exclude_idx});
     sim.aegean_sim_settings().aggregate_window = aggregate_window;
     sim.aegean_sim_settings().timestep = timestep;

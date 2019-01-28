@@ -155,14 +155,6 @@ def build(bld):
                 uselib=libs,
                 target='zebra_virtual_sim')
 
-    bld.program(features='cxx',
-                install_path=None,
-                defines=['USE_LIBCMAES'],
-                source='exp/zebra/zebra_cmaes_nn_train.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs + ' LIBCMAES',
-                target='zebra_cmaes_nn_train')
-
     srcs = []
     incs = ['exp/zebra/sim/', 'src/nn/src', 'src/limbo/src', 'src/']
     nodes = bld.path.ant_glob('exp/zebra/sim/*.cpp', src=True, dir=False)
@@ -185,5 +177,13 @@ def build(bld):
                 includes='./src ./src/nn/src ./src/limbo/src ./src/simu/src',
                 use='SIMU AEGEAN_SIMU ' + libs,
                 target='zebra_sim')
+
+    bld.program(features='cxx',
+                install_path=None,
+                defines=['USE_LIBCMAES'],
+                source='exp/zebra/zebra_cmaes_nn_train.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src',
+                uselib='SIMU AEGEAN_SIMU LIBCMAES ' + libs,
+                target='zebra_cmaes_nn_train')
 
     bld.add_post_fun(summary)

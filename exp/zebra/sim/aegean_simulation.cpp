@@ -8,6 +8,7 @@ namespace simu {
             std::shared_ptr<Eigen::MatrixXd> velocities,
             std::shared_ptr<Eigen::MatrixXd> predictions,
             std::shared_ptr<Eigen::MatrixXd> generated_positions,
+            std::shared_ptr<Eigen::MatrixXd> generated_velocities,
             const std::vector<int>& robot_idcs,
             const Eigen::MatrixXd& labels)
             : Simulation(false),
@@ -17,6 +18,7 @@ namespace simu {
               _velocities(velocities),
               _predictions(predictions),
               _generated_positions(generated_positions),
+              _generated_velocities(generated_velocities),
               _robot_idcs(robot_idcs),
               _labels(labels)
         {
@@ -44,6 +46,8 @@ namespace simu {
             for (const int idx : idcs) {
                 (*_generated_positions)(_iteration, idx * 2) = _individuals[idx]->position().x;
                 (*_generated_positions)(_iteration, idx * 2 + 1) = _individuals[idx]->position().y;
+                (*_generated_velocities)(_iteration, idx * 2) = _individuals[idx]->speed().vx;
+                (*_generated_velocities)(_iteration, idx * 2 + 1) = _individuals[idx]->speed().vy;
             }
 
             // stimulate the fish to drive their movement decisions
@@ -94,6 +98,7 @@ namespace simu {
             }
 
             *_generated_positions = Eigen::MatrixXd::Zero(sim_time(), _positions->cols());
+            *_generated_velocities = Eigen::MatrixXd::Zero(sim_time(), _positions->cols());
             *_predictions = Eigen::MatrixXd::Ones(sim_time(), _aegean_sim_settings.num_agents) * -1;
         }
 
@@ -107,6 +112,9 @@ namespace simu {
 
         const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::generated_positions() const { return _generated_positions; }
         std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::generated_positions() { return _generated_positions; }
+
+        const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::generated_velocities() const { return _generated_velocities; }
+        std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::generated_velocities() { return _generated_velocities; }
 
         const std::shared_ptr<const Eigen::MatrixXd> AegeanSimulation::predictions() const { return _predictions; }
         std::shared_ptr<Eigen::MatrixXd> AegeanSimulation::predictions() { return _predictions; }

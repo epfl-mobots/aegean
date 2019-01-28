@@ -36,7 +36,9 @@ namespace simu {
                 std::shared_ptr<Eigen::MatrixXd> positions,
                 std::shared_ptr<Eigen::MatrixXd> velocities,
                 std::shared_ptr<Eigen::MatrixXd> predictions,
-                std::shared_ptr<Eigen::MatrixXd> generated_positions, const std::vector<int>& robot_idcs = {},
+                std::shared_ptr<Eigen::MatrixXd> generated_positions,
+                std::shared_ptr<Eigen::MatrixXd> generated_velocities,
+                const std::vector<int>& robot_idcs = {},
                 const Eigen::MatrixXd& labels = Eigen::MatrixXd());
 
             void spin_once() override;
@@ -51,6 +53,9 @@ namespace simu {
 
             const std::shared_ptr<const Eigen::MatrixXd> generated_positions() const;
             std::shared_ptr<Eigen::MatrixXd> generated_positions();
+
+            const std::shared_ptr<const Eigen::MatrixXd> generated_velocities() const;
+            std::shared_ptr<Eigen::MatrixXd> generated_velocities();
 
             const std::shared_ptr<const Eigen::MatrixXd> predictions() const;
             std::shared_ptr<Eigen::MatrixXd> predictions();
@@ -78,6 +83,7 @@ namespace simu {
             std::shared_ptr<Eigen::MatrixXd> _velocities;
             std::shared_ptr<Eigen::MatrixXd> _predictions;
             std::shared_ptr<Eigen::MatrixXd> _generated_positions;
+            std::shared_ptr<Eigen::MatrixXd> _generated_velocities;
 
             std::vector<int> _robot_idcs;
             Eigen::MatrixXd _labels;

@@ -1,7 +1,8 @@
 #include "sim/aegean_simulation.hpp"
 #include "sim/aegean_individual.hpp"
 
-#include <simple_nn/neural_net.hpp>
+#include "nn_structure.hpp"
+
 #include <clustering/kmeans.hpp>
 
 #include <tools/archive.hpp>
@@ -21,7 +22,11 @@ struct Params {
 int main(int argc, char** argv)
 {
     // load experiment parameters
+#ifndef WITH_CMAES_SIM
     assert(argc == 4);
+#else
+    assert(argc == 5);
+#endif
     std::string path(argv[1]);
     int exp_num = std::stoi(argv[2]);
     int exclude_idx = std::stoi(argv[3]);
@@ -59,21 +64,38 @@ int main(int argc, char** argv)
         ifs.close();
     }
 
+    uint num_individuals;
+    {
+        Eigen::MatrixXd positions;
+        archive.load(positions, path + "/seg_0_reconstructed_positions.dat");
+        num_individuals = static_cast<uint>(positions.cols() / 2);
+    }
+
     uint aggregate_window = window_in_seconds * (fps / num_centroids);
+    std::cout << "done" << std::endl;
     float timestep = static_cast<float>(num_centroids) / fps;
 
     // creating the nn structure
     simu::simulation::NNVec nn(num_behaviours);
+    nn_strucutre::init_nn(nn, num_behaviours, num_individuals);
+
+#ifndef WITH_CMAES_SIM
     for (uint b = 0; b < num_behaviours; ++b) {
-        nn[b] = std::make_shared<simple_nn::NeuralNet>();
-        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(10 + 10 + 1 + 2 + 2, 100);
-        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(100, 2);
         Eigen::MatrixXd weights;
         archive.load(weights, path + "/nn_controller_weights_" + std::to_string(b) + ".dat");
         nn[b]->set_weights(weights);
     }
+#else
+    Eigen::MatrixXd params;
+    archive.load(params, path + "/cmaes_iter_" + std::string(argv[4]) + "_weights.dat");
+    for (uint b = 0; b < num_behaviours; ++b) {
+        Eigen::MatrixXd behaviour_specific_params;
+        behaviour_specific_params = params.block(
+            static_cast<int>(params.rows() / num_behaviours) * b, 0,
+            static_cast<int>(params.rows() / num_behaviours), params.cols());
+        nn[b]->set_weights(behaviour_specific_params);
+    }
+#endif
 
     // we load the experiment positions, velocities, etc
     // and wrap them in shared pointers to avoid continuous
@@ -106,17 +128,16 @@ int main(int argc, char** argv)
     archive.save(predictions->col(exclude_idx),
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx));
 
-    Eigen::MatrixXd extended_traj(generated_positions->rows(), generated_positions->cols());
-    archive.save(extended_traj,
+    archive.save(*generated_positions,
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_positions");
 
     using distance_func_t
         = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
     features::InterIndividualDistance<distance_func_t> iid;
-    iid(extended_traj, timestep);
+    iid(*generated_positions, timestep);
 
     features::Alignment align;
-    align(extended_traj, timestep);
+    align(*generated_positions, timestep);
 
     Eigen::MatrixXd feature_matrix(iid.get().rows(), iid.get().cols() + align.get().cols());
     feature_matrix << iid.get(), align.get();

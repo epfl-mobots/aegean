@@ -1,5 +1,4 @@
-#include <simple_nn/loss.hpp>
-#include <simple_nn/neural_net.hpp>
+#include "nn_structure.hpp"
 
 #include <tools/polygons/circular_corridor.hpp>
 #include <tools/archive.hpp>
@@ -33,7 +32,7 @@ struct Params {
     };
 
     struct opt_cmaes : public limbo::defaults::opt_cmaes {
-        BO_PARAM(int, max_fun_evals, 100);
+        BO_PARAM(int, max_fun_evals, 60000);
     };
 };
 
@@ -138,15 +137,7 @@ public:
         _timestep = static_cast<float>(_num_centroids) / _fps;
 
         _nn = simu::simulation::NNVec(_num_behaviours);
-        for (uint b = 0; b < _num_behaviours; ++b) {
-            _nn[b] = std::make_shared<simple_nn::NeuralNet>();
-            _nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(
-                num_individuals * 2 + num_individuals * 2 - 2 + 1 + 2, 100);
-            _nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-            // _nn.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-            _nn[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(100, 2); // dr cosdphi sindphi
-            std::cout << "NN " << b << " number of weights: " << _nn[b]->num_weights() << std::endl;
-        }
+        nn_strucutre::init_nn(_nn, _num_behaviours, _num_individuals);
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
@@ -158,83 +149,98 @@ public:
         using distance_func_t = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
         InterIndividualDistance<distance_func_t> iid;
 
-        Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 50);
-        Eigen::MatrixXd align_hist = Eigen::MatrixXd::Zero(1, 20);
-        Eigen::MatrixXd iid_hist = Eigen::MatrixXd::Zero(1, 72);
-        Eigen::MatrixXd nearest_wall_hist = Eigen::MatrixXd::Zero(1, 25);
-
         Eigen::MatrixXd cluster_centers;
         _archive.load(cluster_centers, _path + "/centroids_kmeans.dat");
         aegean::clustering::KMeans<> km(cluster_centers);
-        double fit = 0;
-        for (int b = 0; b < _num_behaviours; ++b) {
-            _nn[b]->set_weights(params);
-            for (int exp_num = 0; exp_num < _num_segments; ++exp_num) {
-                std::cout << "\t Experiment: " << exp_num << std::endl;
 
-                Eigen::MatrixXd positions, velocities;
-                _archive.load(positions, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
-                _archive.load(velocities, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
-
-                for (int exclude_idx = 0; exclude_idx < _num_individuals; ++exclude_idx) {
-                    // std::cout << "\t\t Individual: " << exclude_idx << std::endl;
-
-                    std::shared_ptr<Eigen::MatrixXd> generated_positions = std::make_shared<Eigen::MatrixXd>();
-                    std::shared_ptr<Eigen::MatrixXd> generated_velocities = std::make_shared<Eigen::MatrixXd>();
-                    std::shared_ptr<Eigen::MatrixXd> predictions = std::make_shared<Eigen::MatrixXd>();
-
-                    simu::simulation::AegeanSimulation sim(_nn,
-                        std::make_shared<aegean::clustering::KMeans<>>(km),
-                        std::make_shared<Eigen::MatrixXd>(positions),
-                        std::make_shared<Eigen::MatrixXd>(velocities),
-                        predictions,
-                        generated_positions,
-                        generated_velocities,
-                        {exclude_idx});
-                    sim.aegean_sim_settings().aggregate_window = _aggregate_window;
-                    sim.aegean_sim_settings().timestep = _timestep;
-                    sim.sim_time() = positions.rows();
-                    sim.spin();
-
-                    {
-                        Eigen::MatrixXd res_velocities(velocities.rows(), velocities.cols() / 2);
-                        for (uint j = 0; j < res_velocities.cols(); ++j) {
-                            res_velocities.col(j) = ((*generated_velocities).col(j * 2).array().pow(2) + (*generated_velocities).col(j * 2 + 1).array().pow(2)).array().sqrt();
-                        }
-                        Eigen::MatrixXd dist_to_nearest_wall(positions.rows(), positions.cols() / 2);
-                        for (uint j = 0; j < dist_to_nearest_wall.cols(); ++j) {
-                            for (uint r = 0; r < (*generated_positions).rows(); ++r) {
-                                primitives::Point p((*generated_positions)(r, j * 2), (*generated_positions)(r, j * 2 + 1));
-                                dist_to_nearest_wall(r, j) = cc.min_distance(p);
-                            }
-                        }
-                        align((*generated_positions), _timestep);
-                        iid((*generated_positions), _timestep);
-
-                        // aggregate histograms
-                        lin_vel_hist += lvh(res_velocities);
-                        align_hist += ah(align.get());
-                        iid_hist += iidh(iid.get() * 360);
-                        nearest_wall_hist += nwh(dist_to_nearest_wall.rowwise().mean());
-                    }
-                } // exclude_idx
-            } // exp_num
-
-            // normalize into probs
-            lin_vel_hist /= lin_vel_hist.sum();
-            align_hist /= align_hist.sum();
-            iid_hist /= iid_hist.sum();
-            nearest_wall_hist /= nearest_wall_hist.sum();
-            std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
-
-            double distances = 1;
-            for (int i = 0; i < dists.size(); ++i)
-                distances *= (1 - _hd(_orig_dists[i], dists[i]));
-            fit += pow(distances, 1. / dists.size());
+        for (uint b = 0; b < _num_behaviours; ++b) {
+            Eigen::MatrixXd behaviour_specific_params;
+            behaviour_specific_params = params.block(
+                static_cast<int>(params.rows() / _num_behaviours) * b, 0,
+                static_cast<int>(params.rows() / _num_behaviours), params.cols());
+            _nn[b]->set_weights(behaviour_specific_params);
         } // b
 
-        fit /= _num_behaviours;
+        double fit = 0;
+        for (uint exp_num = 0; exp_num < _num_segments; ++exp_num) {
+            std::cout << "\t Experiment: " << exp_num << std::endl;
+
+            Eigen::MatrixXd positions, velocities;
+            _archive.load(positions, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
+            _archive.load(velocities, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
+
+            for (uint exclude_idx = 0; exclude_idx < _num_individuals; ++exclude_idx) {
+                // std::cout << "\t\t Individual: " << exclude_idx << std::endl;
+
+                // distribution vectors
+                Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 50);
+                Eigen::MatrixXd align_hist = Eigen::MatrixXd::Zero(1, 20);
+                Eigen::MatrixXd iid_hist = Eigen::MatrixXd::Zero(1, 72);
+                Eigen::MatrixXd nearest_wall_hist = Eigen::MatrixXd::Zero(1, 25);
+
+                std::shared_ptr<Eigen::MatrixXd> generated_positions = std::make_shared<Eigen::MatrixXd>();
+                std::shared_ptr<Eigen::MatrixXd> generated_velocities = std::make_shared<Eigen::MatrixXd>();
+                std::shared_ptr<Eigen::MatrixXd> predictions = std::make_shared<Eigen::MatrixXd>();
+
+                simu::simulation::AegeanSimulation sim(_nn,
+                    std::make_shared<aegean::clustering::KMeans<>>(km),
+                    std::make_shared<Eigen::MatrixXd>(positions),
+                    std::make_shared<Eigen::MatrixXd>(velocities),
+                    predictions,
+                    generated_positions,
+                    generated_velocities,
+                    {exclude_idx});
+                sim.aegean_sim_settings().aggregate_window = _aggregate_window;
+                sim.aegean_sim_settings().timestep = _timestep;
+                sim.sim_time() = positions.rows();
+                sim.spin();
+
+                {
+                    Eigen::MatrixXd res_velocities(velocities.rows(), velocities.cols() / 2);
+                    for (uint j = 0; j < res_velocities.cols(); ++j) {
+                        res_velocities.col(j) = ((*generated_velocities).col(j * 2).array().pow(2) + (*generated_velocities).col(j * 2 + 1).array().pow(2)).array().sqrt();
+                    }
+                    Eigen::MatrixXd dist_to_nearest_wall(positions.rows(), positions.cols() / 2);
+                    for (uint j = 0; j < dist_to_nearest_wall.cols(); ++j) {
+                        for (uint r = 0; r < (*generated_positions).rows(); ++r) {
+                            primitives::Point p((*generated_positions)(r, j * 2), (*generated_positions)(r, j * 2 + 1));
+                            dist_to_nearest_wall(r, j) = cc.min_distance(p);
+                        }
+                    }
+                    align((*generated_positions), _timestep);
+                    iid((*generated_positions), _timestep);
+
+                    // aggregate histograms
+                    lin_vel_hist += lvh(res_velocities);
+                    align_hist += ah(align.get());
+                    iid_hist += iidh(iid.get() * 360);
+                    nearest_wall_hist += nwh(dist_to_nearest_wall.rowwise().mean());
+                }
+
+                // normalize into probs
+                lin_vel_hist /= lin_vel_hist.sum();
+                align_hist /= align_hist.sum();
+                iid_hist /= iid_hist.sum();
+                nearest_wall_hist /= nearest_wall_hist.sum();
+                std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
+
+                double distances = 1;
+                std::cout << "\t\t";
+                for (uint i = 0; i < dists.size(); ++i) {
+                    double single_hd = 1 - _hd(_orig_dists[i], dists[i]);
+                    distances *= single_hd;
+                    std::cout << single_hd << " ";
+                }
+                std::cout << std::endl;
+                fit += pow(distances, 1. / dists.size());
+            } // exclude_idx
+
+        } // exp_num
+
+        fit /= _num_segments * _num_individuals;
         std::cout << "\t Fitness: " << fit << std::endl;
+        _archive.save(params, _path + "/cmaes_iter_" + std::to_string(_iteration) + "_weights");
+
         return limbo::opt::no_grad(fit);
     }
 
@@ -286,29 +292,25 @@ int main(int argc, char** argv)
         ifs.close();
     }
 
+    uint num_individuals;
+    {
+        Eigen::MatrixXd positions;
+        archive.load(positions, path + "/seg_0_reconstructed_positions.dat");
+        num_individuals = static_cast<uint>(positions.cols() / 2);
+    }
+
     float timestep = static_cast<float>(centroids) / fps;
 
     std::vector<Eigen::MatrixXd> orig_dists = load_original_distributions(path, num_segments, timestep);
-
-    // for (uint b = 0; b < behaviours; ++b) {
-
-    // uint num_params;
-    // {
-    //     Eigen::MatrixXd weights;
-    //     archive.load(weights, path + "/nn_controller_weights_0.dat");
-    //     num_params = weights.rows();
-    // }
-
-    ZebraSim sim(orig_dists, 6, num_segments, std::string(path)); // TODO: 6 should be replaced with a more generic expression
+    ZebraSim sim(orig_dists, num_individuals, num_segments, std::string(path));
     limbo::opt::Cmaes<Params> cmaes;
 
-    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(12902, 1);
+    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(1772 * behaviours, 1);
     Eigen::VectorXd res_cmaes = cmaes(sim, random_params, false);
 
     std::cout << "Result with CMA-ES:\t" << res_cmaes.transpose()
               << " -> " << sim(res_cmaes).first << std::endl;
     archive.save(res_cmaes, path + "/cmaes_opt_weights");
 
-    // }
     return 0;
 }

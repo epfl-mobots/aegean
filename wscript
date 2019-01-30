@@ -180,6 +180,14 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
+                defines=['WITH_CMAES_SIM'],
+                source='exp/zebra/zebra_sim.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src ./src/simu/src',
+                use='SIMU AEGEAN_SIMU ' + libs,
+                target='zebra_sim_cmaes')
+
+    bld.program(features='cxx',
+                install_path=None,
                 defines=['USE_LIBCMAES'],
                 source='exp/zebra/zebra_cmaes_nn_train.cpp',
                 includes='./src ./src/nn/src ./src/limbo/src',

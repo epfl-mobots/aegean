@@ -49,6 +49,7 @@ if __name__ == '__main__':
     tsteps = traj.shape[0]
     if args.virtual:
         vtraj = np.loadtxt(args.virtual)
+        print(vtraj)
     if args.velocities:
         rolledPos = np.roll(traj, -1, axis=0)
         vel = rolledPos - traj

@@ -165,7 +165,7 @@ def build(bld):
               source=srcs,
               includes=incs,
               cxxflags=['-O3', '-fPIC', '-rdynamic'],
-              uselib='SIMU EIGEN',
+              uselib='SIMU EIGEN BOOST',
               target='aegean_simu')
     bld.env.LIBPATH_AEGEAN_SIMU = [os.getcwd() + '/build']
     bld.env.SHLIB_AEGEAN_SIMU = ['aegean_simu']

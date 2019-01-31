@@ -13,6 +13,7 @@
 
 #include "sim/aegean_simulation.hpp"
 #include "sim/aegean_individual.hpp"
+#include "sim/invalid_prediction_desc.hpp"
 
 #include <limbo/opt/cmaes.hpp>
 
@@ -196,6 +197,7 @@ public:
                     generated_positions,
                     generated_velocities,
                     {static_cast<int>(exclude_idx)});
+                sim.add_desc(std::make_shared<simu::desc::InvalidPrediction>(true));
                 sim.aegean_sim_settings().aggregate_window = _aggregate_window;
                 sim.aegean_sim_settings().timestep = _timestep;
                 sim.sim_time() = positions.rows();
@@ -230,6 +232,8 @@ public:
                 nearest_wall_hist /= nearest_wall_hist.sum();
                 std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
 
+                double invalid_perc = sim.descriptors()[0]->get()[0];
+
                 double distances = 1;
                 // std::cout << "\t\t";
                 for (uint i = 0; i < dists.size(); ++i) {
@@ -238,7 +242,7 @@ public:
                     // std::cout << single_hd << " ";
                 }
                 // std::cout << std::endl;
-                fit += pow(distances, 1. / dists.size());
+                fit += (1 - invalid_perc) * pow(distances, 1. / dists.size());
             } // exclude_idx
 
         } // exp_num

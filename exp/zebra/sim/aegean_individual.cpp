@@ -28,6 +28,7 @@ namespace simu {
         void AegeanIndividual::stimulate(const std::shared_ptr<Simulation> sim)
         {
             using namespace tools;
+            _invalid_prediction = false;
 
             if (_is_robot) {
                 auto asim = std::dynamic_pointer_cast<AegeanSimulation>(sim);
@@ -101,6 +102,7 @@ namespace simu {
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);
                 if (!valid) {
+                    _invalid_prediction = true;
                     // TODO: if not valid do something smarter...
                     _desired_position = _position;
                 }
@@ -124,6 +126,11 @@ namespace simu {
                 _speed.vx = (*v)(asim->iteration(), _id * 2);
                 _speed.vy = (*v)(asim->iteration(), _id * 2 + 1);
             }
+        }
+
+        bool AegeanIndividual::invalid_prediction() const
+        {
+            return _invalid_prediction;
         }
 
     } // namespace simulation

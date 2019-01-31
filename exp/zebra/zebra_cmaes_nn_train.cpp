@@ -141,9 +141,11 @@ public:
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
     {
+        int run_id = -1;
         {
             std::lock_guard<std::mutex> lock(_mtx);
-            std::cout << "CMAES iteration: " << _iteration++ << std::endl;
+            run_id = _iteration;
+            std::cout << "CMAES run: " << _iteration++ << std::endl;
         }
 
         simu::simulation::NNVec nn;
@@ -245,7 +247,7 @@ public:
 
         fit /= _num_segments * _num_individuals;
         // std::cout << "\t Fitness: " << fit << std::endl;
-        _archive.save(params, _path + "/cmaes_iter_" + std::to_string(_iteration) + "_weights_" + std::to_string(fit));
+        _archive.save(params, _path + "/cmaes_iter_" + std::to_string(run_id) + "_weights_" + std::to_string(fit));
 
         return limbo::opt::no_grad(fit);
     }

@@ -72,7 +72,6 @@ int main(int argc, char** argv)
     }
 
     uint aggregate_window = window_in_seconds * (fps / num_centroids);
-    std::cout << "done" << std::endl;
     float timestep = static_cast<float>(num_centroids) / fps;
 
     // creating the nn structure
@@ -130,6 +129,9 @@ int main(int argc, char** argv)
 
     archive.save(*generated_positions,
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_positions");
+
+    archive.save(*generated_velocities,
+        path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_velocities");
 
     using distance_func_t
         = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;

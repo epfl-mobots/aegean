@@ -189,7 +189,7 @@ public:
                     predictions,
                     generated_positions,
                     generated_velocities,
-                    {exclude_idx});
+                    {static_cast<int>(exclude_idx)});
                 sim.aegean_sim_settings().aggregate_window = _aggregate_window;
                 sim.aegean_sim_settings().timestep = _timestep;
                 sim.sim_time() = positions.rows();
@@ -225,13 +225,13 @@ public:
                 std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
 
                 double distances = 1;
-                std::cout << "\t\t";
+                // std::cout << "\t\t";
                 for (uint i = 0; i < dists.size(); ++i) {
                     double single_hd = 1 - _hd(_orig_dists[i], dists[i]);
                     distances *= single_hd;
-                    std::cout << single_hd << " ";
+                    // std::cout << single_hd << " ";
                 }
-                std::cout << std::endl;
+                // std::cout << std::endl;
                 fit += pow(distances, 1. / dists.size());
             } // exclude_idx
 

@@ -1,5 +1,4 @@
-#include <simple_nn/loss.hpp>
-#include <simple_nn/neural_net.hpp>
+#include "nn_structure.hpp"
 
 #include <limbo/opt/adam.hpp>
 
@@ -26,7 +25,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 50);
+        BO_PARAM(int, iterations, 10000);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate
@@ -289,6 +288,13 @@ int main(int argc, char** argv)
     std::string path(argv[1]);
     Archive archive(false);
 
+    uint num_individuals;
+    {
+        Eigen::MatrixXd positions;
+        archive.load(positions, path + "/seg_0_reconstructed_positions.dat");
+        num_individuals = static_cast<uint>(positions.cols() / 2);
+    }
+
 #ifdef SMOOTH_LOSS
     uint centroids;
     {
@@ -320,10 +326,7 @@ int main(int argc, char** argv)
     int N = 1024;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
         simple_nn::NeuralNet network;
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(inputs[behav].cols(), 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        network.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(100, outputs[behav].cols());
+        nn_strucutre::init_nn(network, num_individuals);
 
         // Random initial weights
         Eigen::VectorXd theta = Eigen::VectorXd::Random(network.num_weights());

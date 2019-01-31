@@ -22,6 +22,8 @@
 #include <fstream>
 #include <iomanip>
 
+#include <mutex>
+
 using namespace aegean;
 using namespace tools;
 using namespace histogram;
@@ -135,14 +137,18 @@ public:
 
         _aggregate_window = _window_in_seconds * (_fps / _num_centroids);
         _timestep = static_cast<float>(_num_centroids) / _fps;
-
-        _nn = simu::simulation::NNVec(_num_behaviours);
-        nn_strucutre::init_nn(_nn, _num_behaviours, _num_individuals);
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
     {
-        std::cout << "CMAES iteration: " << _iteration++ << std::endl;
+        {
+            std::lock_guard<std::mutex> lock(_mtx);
+            std::cout << "CMAES iteration: " << _iteration++ << std::endl;
+        }
+
+        simu::simulation::NNVec nn;
+        nn = simu::simulation::NNVec(_num_behaviours);
+        nn_strucutre::init_nn(nn, _num_behaviours, _num_individuals);
 
         Alignment align;
         polygons::CircularCorridor<Params> cc;
@@ -158,12 +164,12 @@ public:
             behaviour_specific_params = params.block(
                 static_cast<int>(params.rows() / _num_behaviours) * b, 0,
                 static_cast<int>(params.rows() / _num_behaviours), params.cols());
-            _nn[b]->set_weights(behaviour_specific_params);
+            nn[b]->set_weights(behaviour_specific_params);
         } // b
 
         double fit = 0;
         for (uint exp_num = 0; exp_num < _num_segments; ++exp_num) {
-            std::cout << "\t Experiment: " << exp_num << std::endl;
+            // std::cout << "\t Experiment: " << exp_num << std::endl;
 
             Eigen::MatrixXd positions, velocities;
             _archive.load(positions, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
@@ -182,7 +188,7 @@ public:
                 std::shared_ptr<Eigen::MatrixXd> generated_velocities = std::make_shared<Eigen::MatrixXd>();
                 std::shared_ptr<Eigen::MatrixXd> predictions = std::make_shared<Eigen::MatrixXd>();
 
-                simu::simulation::AegeanSimulation sim(_nn,
+                simu::simulation::AegeanSimulation sim(nn,
                     std::make_shared<aegean::clustering::KMeans<>>(km),
                     std::make_shared<Eigen::MatrixXd>(positions),
                     std::make_shared<Eigen::MatrixXd>(velocities),
@@ -238,15 +244,15 @@ public:
         } // exp_num
 
         fit /= _num_segments * _num_individuals;
-        std::cout << "\t Fitness: " << fit << std::endl;
-        _archive.save(params, _path + "/cmaes_iter_" + std::to_string(_iteration) + "_weights");
+        // std::cout << "\t Fitness: " << fit << std::endl;
+        _archive.save(params, _path + "/cmaes_iter_" + std::to_string(_iteration) + "_weights_" + std::to_string(fit));
 
         return limbo::opt::no_grad(fit);
     }
 
 private:
+    mutable std::mutex _mtx;
     Archive _archive;
-    mutable simu::simulation::NNVec _nn;
     std::vector<Eigen::MatrixXd> _orig_dists;
     uint _num_individuals;
     uint _num_segments;

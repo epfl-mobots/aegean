@@ -13,7 +13,7 @@ namespace nn_strucutre {
             net[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(30, 30);
             // _nn.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
             net[b]->add_layer<simple_nn::FullyConnectedLayer<simple_nn::Linear>>(30, 2); // dr cosdphi sindphi
-            std::cout << "NN " << b << " number of weights: " << net[b]->num_weights() << std::endl;
+            // std::cout << "NN " << b << " number of weights: " << net[b]->num_weights() << std::endl;
         }
     }
 

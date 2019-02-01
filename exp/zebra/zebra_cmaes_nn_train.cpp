@@ -36,6 +36,11 @@ struct Params {
 
     struct opt_cmaes : public limbo::defaults::opt_cmaes {
         BO_PARAM(int, max_fun_evals, 60000);
+        /// 0 -> no elitism
+        /// 1 -> elitism: reinjects the best-ever seen solution
+        /// 2 -> initial elitism: reinject x0 as long as it is not improved upon
+        /// 3 -> initial elitism on restart: restart if best encountered solution is not the the final
+        BO_PARAM(int, elitism, 1);
     };
 };
 

@@ -143,8 +143,6 @@ public:
 
         _aggregate_window = _window_in_seconds * (_fps / _num_centroids);
         _timestep = static_cast<float>(_num_centroids) / _fps;
-
-        std::cout << "should be once in here" << std::endl;
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
@@ -251,17 +249,18 @@ public:
                     // std::cout << single_hd << " ";
                 }
                 // std::cout << std::endl;
-                std::cout << invalid_perc << std::endl;
-                fit += pow(distances, 1. / dists.size());
-                // fit += (1 - invalid_perc) * pow(distances, 1. / dists.size());
-                // fit += (1 - invalid_perc);
+                // fit *= pow(distances, 1. / dists.size());
+                double distance = 1 - _hd(_orig_dists[0], dists[0]);
+                fit += distance;
+
+                // fit *= (1 - invalid_perc) * pow(distances, 1. / dists.size());
+                // fit *= (1 - invalid_perc);
 
             } // exclude_idx
-
         } // exp_num
 
-        fit /= _num_segments * _num_individuals;
-        // std::cout << "\t Fitness: " << fit << std::endl;
+        fit /= _num_individuals * _num_segments;
+        std::cout << "\t Fitness: " << fit << std::endl;
         _archive.save(params, _path + "/cmaes_weights_e_" + std::to_string(current_eval) + "_f_" + std::to_string(fit));
 
         return limbo::opt::no_grad(fit);
@@ -328,7 +327,7 @@ int main(int argc, char** argv)
     ZebraSim sim(orig_dists, num_individuals, num_segments, std::string(path));
     limbo::opt::Cmaes<Params> cmaes;
 
-    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(1772 * behaviours, 1);
+    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(392 * behaviours, 1);
     Eigen::VectorXd res_cmaes = cmaes(sim, random_params, false);
 
     std::cout << "Result with CMA-ES:\t" << res_cmaes.transpose()

@@ -211,16 +211,13 @@ public:
                 sim.spin();
 
                 {
-                    Eigen::MatrixXd res_velocities(velocities.rows(), velocities.cols() / 2);
-                    for (uint j = 0; j < res_velocities.cols(); ++j) {
-                        res_velocities.col(j) = ((*generated_velocities).col(j * 2).array().pow(2) + (*generated_velocities).col(j * 2 + 1).array().pow(2)).array().sqrt();
-                    }
-                    Eigen::MatrixXd dist_to_nearest_wall(positions.rows(), positions.cols() / 2);
-                    for (uint j = 0; j < dist_to_nearest_wall.cols(); ++j) {
-                        for (uint r = 0; r < (*generated_positions).rows(); ++r) {
-                            primitives::Point p((*generated_positions)(r, j * 2), (*generated_positions)(r, j * 2 + 1));
-                            dist_to_nearest_wall(r, j) = cc.min_distance(p);
-                        }
+                    Eigen::MatrixXd res_velocities(velocities.rows(), 1);
+                    res_velocities.col(0) = ((*generated_velocities).col(exclude_idx * 2).array().pow(2) + (*generated_velocities).col(exclude_idx * 2 + 1).array().pow(2)).array().sqrt();
+
+                    Eigen::MatrixXd dist_to_nearest_wall(positions.rows(), 1);
+                    for (uint r = 0; r < (*generated_positions).rows(); ++r) {
+                        primitives::Point p((*generated_positions)(r, exclude_idx * 2), (*generated_positions)(r, exclude_idx * 2 + 1));
+                        dist_to_nearest_wall(r, 0) = cc.min_distance(p);
                     }
                     align((*generated_positions), _timestep);
                     iid((*generated_positions), _timestep);

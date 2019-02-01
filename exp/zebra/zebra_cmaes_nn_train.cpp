@@ -111,7 +111,7 @@ public:
           _num_individuals(num_individuals),
           _num_segments(num_segments),
           _path(path),
-          _iteration(0)
+          _evaluation(0)
     {
         {
             std::ifstream ifs;
@@ -143,13 +143,17 @@ public:
 
         _aggregate_window = _window_in_seconds * (_fps / _num_centroids);
         _timestep = static_cast<float>(_num_centroids) / _fps;
+
+        std::cout << "should be once in here" << std::endl;
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
     {
+        int current_eval;
         {
             std::lock_guard<std::mutex> lock(_mtx);
-            std::cout << "CMAES iteration: " << _iteration++ << std::endl;
+            current_eval = _evaluation;
+            std::cout << "CMAES evaluation: " << _evaluation++ << std::endl;
         }
 
         simu::simulation::NNVec nn;
@@ -247,14 +251,18 @@ public:
                     // std::cout << single_hd << " ";
                 }
                 // std::cout << std::endl;
-                fit += (1 - invalid_perc) * pow(distances, 1. / dists.size());
+                std::cout << invalid_perc << std::endl;
+                fit += pow(distances, 1. / dists.size());
+                // fit += (1 - invalid_perc) * pow(distances, 1. / dists.size());
+                // fit += (1 - invalid_perc);
+
             } // exclude_idx
 
         } // exp_num
 
         fit /= _num_segments * _num_individuals;
         // std::cout << "\t Fitness: " << fit << std::endl;
-        _archive.save(params, _path + "/cmaes_iter_" + std::to_string(_iteration) + "_weights_" + std::to_string(fit));
+        _archive.save(params, _path + "/cmaes_weights_e_" + std::to_string(current_eval) + "_f_" + std::to_string(fit));
 
         return limbo::opt::no_grad(fit);
     }
@@ -266,7 +274,7 @@ private:
     uint _num_individuals;
     uint _num_segments;
     std::string _path;
-    mutable int _iteration;
+    mutable int _evaluation;
     uint _num_behaviours;
     uint _num_centroids;
     uint _fps;

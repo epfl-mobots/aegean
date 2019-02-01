@@ -143,6 +143,8 @@ public:
 
         _aggregate_window = _window_in_seconds * (_fps / _num_centroids);
         _timestep = static_cast<float>(_num_centroids) / _fps;
+
+        _fit_file.open(path + "/fitness.dat", std::ios_base::app);
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
@@ -177,15 +179,11 @@ public:
 
         double fit = 0;
         for (uint exp_num = 0; exp_num < _num_segments; ++exp_num) {
-            // std::cout << "\t Experiment: " << exp_num << std::endl;
-
             Eigen::MatrixXd positions, velocities;
             _archive.load(positions, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
             _archive.load(velocities, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
 
             for (uint exclude_idx = 0; exclude_idx < _num_individuals; ++exclude_idx) {
-                // std::cout << "\t\t Individual: " << exclude_idx << std::endl;
-
                 // distribution vectors
                 Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 50);
                 Eigen::MatrixXd align_hist = Eigen::MatrixXd::Zero(1, 20);
@@ -239,26 +237,23 @@ public:
                 double invalid_perc = sim.descriptors()[0]->get()[0];
 
                 double distances = 1;
-                // std::cout << "\t\t";
                 for (uint i = 0; i < dists.size(); ++i) {
                     double single_hd = 1 - _hd(_orig_dists[i], dists[i]);
                     distances *= single_hd;
-                    // std::cout << single_hd << " ";
                 }
-                // std::cout << std::endl;
                 // fit *= pow(distances, 1. / dists.size());
                 double distance = 1 - _hd(_orig_dists[0], dists[0]);
                 fit += distance;
-
-                // fit *= (1 - invalid_perc) * pow(distances, 1. / dists.size());
-                // fit *= (1 - invalid_perc);
-
+                // fit += pow(distances, 1. / dists.size());
             } // exclude_idx
         } // exp_num
 
         fit /= _num_individuals * _num_segments;
-        std::cout << "\t Fitness: " << fit << std::endl;
-        _archive.save(params, _path + "/cmaes_weights_e_" + std::to_string(current_eval) + "_f_" + std::to_string(fit));
+        _archive.save(params, _path + "/cmaes_weights_e_" + std::to_string(current_eval));
+        {
+            std::lock_guard<std::mutex> lock(_mtx);
+            _fit_file << current_eval << " " << fit << "\n";
+        }
 
         return limbo::opt::no_grad(fit);
     }
@@ -278,6 +273,7 @@ private:
     uint _aggregate_window;
     float _timestep;
     HellingerDistance _hd;
+    mutable std::ofstream _fit_file;
 };
 
 int main(int argc, char** argv)

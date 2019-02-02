@@ -40,7 +40,7 @@ struct Params {
         /// 1 -> elitism: reinjects the best-ever seen solution
         /// 2 -> initial elitism: reinject x0 as long as it is not improved upon
         /// 3 -> initial elitism on restart: restart if best encountered solution is not the the final
-        BO_PARAM(int, elitism, 1);
+        BO_PARAM(int, elitism, 0);
     };
 };
 
@@ -143,8 +143,6 @@ public:
 
         _aggregate_window = _window_in_seconds * (_fps / _num_centroids);
         _timestep = static_cast<float>(_num_centroids) / _fps;
-
-        _fit_file.open(path + "/fitness.dat", std::ios_base::app);
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
@@ -178,6 +176,7 @@ public:
         } // b
 
         double fit = 0;
+	double invalid_percentage = 0;
         for (uint exp_num = 0; exp_num < _num_segments; ++exp_num) {
             Eigen::MatrixXd positions, velocities;
             _archive.load(positions, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
@@ -234,8 +233,7 @@ public:
                 nearest_wall_hist /= nearest_wall_hist.sum();
                 std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
 
-                double invalid_perc = sim.descriptors()[0]->get()[0];
-
+                invalid_percentage += sim.descriptors()[0]->get()[0];
                 double distances = 1;
                 for (uint i = 0; i < dists.size(); ++i) {
                     double single_hd = 1 - _hd(_orig_dists[i], dists[i]);
@@ -249,10 +247,13 @@ public:
         } // exp_num
 
         fit /= _num_individuals * _num_segments;
+        invalid_percentage /= _num_individuals * _num_segments;
         _archive.save(params, _path + "/cmaes_weights_e_" + std::to_string(current_eval));
         {
             std::lock_guard<std::mutex> lock(_mtx);
-            _fit_file << current_eval << " " << fit << "\n";
+            _fit_file.open(_path + "/fitness.dat", std::ios_base::app);
+            _fit_file << current_eval << " " << fit << " " << invalid_percentage << "\n";
+            _fit_file.close();
         }
 
         return limbo::opt::no_grad(fit);

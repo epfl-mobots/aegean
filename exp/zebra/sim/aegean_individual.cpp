@@ -8,6 +8,8 @@
 #include <features/inter_individual_distance.hpp>
 #include <clustering/kmeans.hpp>
 
+#include <limbo/tools/random_generator.hpp>
+
 namespace simu {
     namespace simulation {
 
@@ -95,13 +97,16 @@ namespace simu {
                 Eigen::MatrixXd pos_prediction;
                 pos_prediction = nets[label]->forward(nn_input.transpose()).transpose();
 
-                // TODO: add some noise
-                _desired_position.x = _position.x + pos_prediction(0);
-                _desired_position.y = _position.y + pos_prediction(1);
+                static thread_local limbo::tools::rgen_double_t rgen(0., 0.05); // adding some random noise to the generated position
+
+                _desired_position.x = _position.x + pos_prediction(0) + rgen.rand();
+                _desired_position.y = _position.y + pos_prediction(1) + rgen.rand();
                 p.x() = _desired_position.x;
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);
                 if (!valid) {
+                    std::cout << _desired_position.x << " " << _desired_position.y << " "
+                              << " " << _position.x << " " << _position.y << std::endl;
                     _invalid_prediction = true;
                     // TODO: if not valid do something smarter...
                     _desired_position = _position;

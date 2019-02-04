@@ -105,8 +105,6 @@ namespace simu {
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);
                 if (!valid) {
-                    std::cout << _desired_position.x << " " << _desired_position.y << " "
-                              << " " << _position.x << " " << _position.y << std::endl;
                     _invalid_prediction = true;
                     // TODO: if not valid do something smarter...
                     _desired_position = _position;

@@ -176,7 +176,7 @@ public:
         } // b
 
         double fit = 0;
-	double invalid_percentage = 0;
+        double invalid_percentage = 0;
         for (uint exp_num = 0; exp_num < _num_segments; ++exp_num) {
             Eigen::MatrixXd positions, velocities;
             _archive.load(positions, _path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
@@ -239,10 +239,7 @@ public:
                     double single_hd = 1 - _hd(_orig_dists[i], dists[i]);
                     distances *= single_hd;
                 }
-                // fit *= pow(distances, 1. / dists.size());
-                double distance = 1 - _hd(_orig_dists[0], dists[0]);
-                fit += distance;
-                // fit += pow(distances, 1. / dists.size());
+                fit += pow(distances, 1. / dists.size());
             } // exclude_idx
         } // exp_num
 

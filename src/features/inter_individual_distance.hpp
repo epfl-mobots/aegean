@@ -69,7 +69,7 @@ namespace aegean {
                     }
                     _iid(i) /= (matrix.cols() / 2);
                 }
-                _iid /= 360;
+                _iid /= 360; // TODO: this is wrong in the case of euclidean distance
             }
 
             Eigen::MatrixXd get() override { return _iid; }

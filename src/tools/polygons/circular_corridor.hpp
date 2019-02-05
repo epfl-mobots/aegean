@@ -4,6 +4,7 @@
 #include "polygon_base.hpp"
 #include <Eigen/Core>
 #include <algorithm>
+#include <tools/mathtools.hpp>
 
 namespace aegean {
     namespace defaults {
@@ -31,17 +32,32 @@ namespace aegean {
                 {
                 }
 
-                double min_distance(const Point& p) override
+                double angle_to_nearest_wall(const Point& p, double bearing) const
+                {
+                    using namespace tools;
+                    Eigen::Vector2d pt(2);
+                    pt(0) = p.x() - _center.x();
+                    pt(1) = p.y() - _center.y();
+                    double tangent_brng = std::atan2(pt(1), pt(0)) + M_PI_2;
+                    tangent_brng *= 180. / M_PI;
+                    tangent_brng = std::fmod(tangent_brng, 360.);
+                    double diff = tangent_brng - bearing;
+                    if (abs(diff) > 180)
+                        diff = -1 * sgn(diff) * (360 - abs(diff));
+                    return diff;
+                }
+
+                double min_distance(const Point& p) const override
                 {
                     return std::min(distance_to_inner_wall(p), distance_to_outer_wall(p));
                 }
 
-                double max_distance(const Point& p) override
+                double max_distance(const Point& p) const override
                 {
                     return std::max(distance_to_inner_wall(p), distance_to_outer_wall(p));
                 }
 
-                bool in_polygon(const Point& p) override
+                bool in_polygon(const Point& p) const override
                 {
                     if (distance_to_outer_wall(p) < 0)
                         return false;

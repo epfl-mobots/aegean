@@ -14,6 +14,7 @@ namespace aegean {
                 assert(false);
             }
             virtual Eigen::MatrixXd get() { assert(false); }
+            virtual const std::vector<Eigen::MatrixXd>& get_vec() { assert(false); }
             virtual const std::string& feature_name() { assert(false); }
         };
 

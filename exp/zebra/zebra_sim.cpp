@@ -118,7 +118,7 @@ int main(int argc, char** argv)
         generated_velocities,
         {exclude_idx});
     sim.aegean_sim_settings().aggregate_window = aggregate_window;
-    sim.aegean_sim_settings().timestep = timestep;
+    sim.sim_settings().timestep = timestep;
     sim.sim_time() = positions.rows();
     // sim.spin_once();
     sim.spin();
@@ -132,6 +132,8 @@ int main(int argc, char** argv)
 
     archive.save(*generated_velocities,
         path + "/seg_" + std::to_string(exp_num) + "_virtual_traj_ex_" + std::to_string(exclude_idx) + "_extended_velocities");
+
+    std::cout << "Mean velocities per individual: " << (*generated_velocities).array().abs().colwise().mean() << std::endl;
 
     using distance_func_t
         = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;

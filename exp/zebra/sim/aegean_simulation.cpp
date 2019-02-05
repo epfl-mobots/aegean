@@ -34,7 +34,7 @@ namespace simu {
         void AegeanSimulation::spin_once()
         {
             // using namespace types;
-            std::vector<int> idcs = {0, 1, 2};
+            std::vector<int> idcs;
             for (int i = 0; i < _aegean_sim_settings.num_agents; ++i)
                 idcs.push_back(i);
             std::random_device rd;
@@ -79,7 +79,7 @@ namespace simu {
             if (_labels.size()) {
                 assert(_labels.rows() == _positions->rows());
             }
-            _sim_settings.stats_enabled = _aegean_sim_settings.stats_enabled;
+            _sim_settings.stats_enabled = false;
             sim_time() = _positions->rows();
 
             _individuals.resize(static_cast<size_t>(_aegean_sim_settings.num_agents));
@@ -88,6 +88,8 @@ namespace simu {
                 _individuals[i]->id() = static_cast<int>(i);
                 _individuals[i]->position().x = (*_positions)(0, i * 2);
                 _individuals[i]->position().y = (*_positions)(0, i * 2 + 1);
+                _individuals[i]->speed().vx = (*_velocities)(0, i * 2);
+                _individuals[i]->speed().vy = (*_velocities)(0, i * 2 + 1);
 
                 if (_robot_idcs.size() && std::find(_robot_idcs.begin(), _robot_idcs.end(), i) != _robot_idcs.end()) {
                     _individuals[i]->is_robot() = true;

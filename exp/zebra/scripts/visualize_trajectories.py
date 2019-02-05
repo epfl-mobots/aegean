@@ -43,17 +43,20 @@ if __name__ == '__main__':
                         help='Path to virtual trajectories')
     parser.add_argument('--virtual-features', '-vf', nargs='+', type=str, default='',
                         help='List of virtual features to load')
+    parser.add_argument('--virtual-velocities', type=str,
+                        help='Path to virtual velocities')
     args = parser.parse_args()
 
     traj = np.loadtxt(args.positions)
     tsteps = traj.shape[0]
     if args.virtual:
+        ex_idx = int(args.virtual.split('_')[6])
         vtraj = np.loadtxt(args.virtual)
+        if args.virtual_velocities:
+            vvel = np.loadtxt(args.virtual_velocities)
     if args.velocities:
         rolledPos = np.roll(traj, -1, axis=0)
         vel = rolledPos - traj
-        mX, mY = np.meshgrid(np.arange(0, 1, 0.005),
-                             np.arange(0, 1, 0.005))
 
     iradius = 0.19
     oradius = 0.29
@@ -122,11 +125,13 @@ if __name__ == '__main__':
                     x, y, vel[i,  j*2], vel[i,  j*2+1], scale=1, units='xy')
 
         if args.virtual:
-            x = vtraj[i, 0]
-            y = vtraj[i, 1]
+            x = vtraj[i, ex_idx*2]
+            y = vtraj[i, ex_idx*2 + 1]
             plt.scatter(x, y, marker='x',
                         label='Virtual agent')
-
+            # if args.virtual_velocities:
+            #     Q = plt.quiver(
+            #         x, y, vvel[i,  ex_idx*2], vvel[i,  ex_idx*2 + 1], scale=1, units='xy')
         ax.axis('off')
         # ax.invert_yaxis()
         plt.legend(bbox_to_anchor=(1.1, 0.95),

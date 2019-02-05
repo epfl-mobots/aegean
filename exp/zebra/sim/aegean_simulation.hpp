@@ -12,12 +12,8 @@
 namespace simu {
     namespace simulation {
 
-        struct AegeanSimSettings : public Settings {
-            AegeanSimSettings()
-            {
-                stats_enabled = false; // don't want stats by default
-                timestep = 0.0666666666667;
-            }
+        struct AegeanSimSettings {
+            AegeanSimSettings() {}
 
             int num_agents = -1;
             int num_fish = -1;

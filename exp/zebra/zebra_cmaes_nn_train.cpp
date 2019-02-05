@@ -203,7 +203,7 @@ public:
                     {static_cast<int>(exclude_idx)});
                 sim.add_desc(std::make_shared<simu::desc::InvalidPrediction>(true));
                 sim.aegean_sim_settings().aggregate_window = _aggregate_window;
-                sim.aegean_sim_settings().timestep = _timestep;
+                sim.sim_settings().timestep = _timestep;
                 sim.sim_time() = positions.rows();
                 sim.spin();
 

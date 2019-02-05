@@ -55,7 +55,7 @@ namespace simu {
                 Eigen::MatrixXd epos(1, pos.cols() + 2);
                 epos << pos, _position.x, _position.y;
                 features::InterIndividualDistance<distance_func_t> iid;
-                iid(epos, asim->aegean_sim_settings().timestep);
+                iid(epos, sim->sim_settings().timestep);
                 polygons::Point p(_position.x, _position.y);
                 Eigen::MatrixXd dist_to_walls(1, 2);
                 polygons::CircularCorridor<Params> cc;
@@ -83,7 +83,7 @@ namespace simu {
                     }
 
                     features::Alignment align;
-                    align(pos_block, asim->aegean_sim_settings().timestep);
+                    align(pos_block, sim->sim_settings().timestep);
 
                     Eigen::MatrixXd features(1, 2);
                     uint row_idx;
@@ -97,7 +97,8 @@ namespace simu {
                 Eigen::MatrixXd pos_prediction;
                 pos_prediction = nets[label]->forward(nn_input.transpose()).transpose();
 
-                static thread_local limbo::tools::rgen_double_t rgen(0., 0.05); // adding some random noise to the generated position
+                static thread_local limbo::tools::rgen_double_t rgen(-0.08 * asim->sim_settings().timestep,
+                    0.08 * asim->sim_settings().timestep); // adding some random noise to the generated position
 
                 _desired_position.x = _position.x + pos_prediction(0) + rgen.rand();
                 _desired_position.y = _position.y + pos_prediction(1) + rgen.rand();
@@ -105,9 +106,23 @@ namespace simu {
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);
                 if (!valid) {
-                    _invalid_prediction = true;
-                    // TODO: if not valid do something smarter...
-                    _desired_position = _position;
+                    // if the generated positions was outside of the setup
+                    // then we maintain the individual's position with a bit of noise
+                    for (uint i = 0; i < 1000; ++i) {
+                        p.x() = _position.x + rgen.rand();
+                        p.y() = _position.y + rgen.rand();
+                        valid = cc.in_polygon(p);
+                        if (valid)
+                            break;
+                    }
+                    if (!valid) {
+                        _invalid_prediction = true;
+                        _desired_position = _position;
+                    }
+                    else {
+                        _desired_position.x = p.x();
+                        _desired_position.y = p.y();
+                    }
                 }
             }
         }
@@ -116,7 +131,7 @@ namespace simu {
         {
             auto asim = std::dynamic_pointer_cast<AegeanSimulation>(sim);
             if (_is_robot) {
-                float dt = asim->aegean_sim_settings().timestep;
+                float dt = sim->sim_settings().timestep;
                 _speed.vx = (_desired_position.x - _position.x) / dt;
                 _speed.vy = (_desired_position.y - _position.y) / dt;
                 _position = _desired_position;

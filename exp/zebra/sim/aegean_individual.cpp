@@ -12,6 +12,7 @@
 #include <features/distance_to_agents.hpp>
 #include <features/angle_difference.hpp>
 #include <features/linear_velocity_difference.hpp>
+#include <features/angular_velocity_difference.hpp>
 
 #include <limbo/tools/random_generator.hpp>
 
@@ -52,6 +53,7 @@ namespace simu {
                 features::DistanceToAgents<distance_func_t> adist;
                 features::AngleDifference adif;
                 features::LinearVelocityDifference lvdif;
+                features::AngularVelocityDifference avdif;
                 features::Bearing brng;
                 features::Alignment align;
 
@@ -108,13 +110,13 @@ namespace simu {
                 Eigen::MatrixXd reduced_adist(1, num_individuals - 1);
                 Eigen::MatrixXd reduced_lvdif(1, num_individuals - 1);
                 Eigen::MatrixXd reduced_adif(1, num_individuals - 1);
-                for (uint l = 0, idx = 0; l < num_individuals; ++l) {
+                for (int l = 0, idx = 0; l < num_individuals; ++l) {
                     if (l == _id)
                         continue;
-                    reduced_ldist(idx) = ldists(0, l);
-                    reduced_adist(idx) = adists(0, l);
-                    reduced_lvdif(idx) = lvdifs(0, l);
-                    reduced_adif(idx) = adifs(0, l);
+                    reduced_ldist(idx) = ldists(1, l);
+                    reduced_adist(idx) = adists(1, l);
+                    reduced_adif(idx) = adifs(1, l);
+                    reduced_lvdif(idx) = lvdifs(1, l);
                     ++idx;
                 } // excluding the focal individual
 
@@ -126,8 +128,9 @@ namespace simu {
                     reduced_adist,
                     reduced_lvdif,
                     reduced_adif,
+                    align.get()(1),
                     cc.distance_to_outer_wall(p),
-                    cc.angle_to_nearest_wall(p, brng.get()(0, _id)) / 360;
+                    cc.angle_to_nearest_wall(p, brng.get()(1, _id)) / 360;
 
                 uint label;
                 if (asim->has_labels()) {
@@ -135,11 +138,9 @@ namespace simu {
                         / asim->aegean_sim_settings().aggregate_window));
                 }
                 else {
-
                     Eigen::MatrixXd features(1, 2);
                     uint row_idx;
-                    (asim->iteration() == 0) ? row_idx = 0 : row_idx = align.get().rows() - 2;
-                    features << iid.get()(0), align.get()(row_idx);
+                    features << iid.get()(1), align.get()(1);
                     auto km = asim->kmeans();
                     label = km->predict(features)(0);
                     (*asim->predictions())(asim->iteration(), _id) = label;

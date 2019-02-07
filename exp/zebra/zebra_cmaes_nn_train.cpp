@@ -341,7 +341,7 @@ int main(int argc, char** argv)
     ZebraSim sim(orig_dists, num_individuals, num_segments, std::string(path));
     limbo::opt::Cmaes<Params> cmaes;
 
-    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(962 * behaviours, 1);
+    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(982 * behaviours, 1);
     Eigen::VectorXd res_cmaes = cmaes(sim, random_params, false);
 
     std::cout << "Result with CMA-ES:\t" << res_cmaes.transpose()

@@ -15,6 +15,8 @@ namespace aegean {
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {
+                using namespace tools;
+
                 const uint duration = matrix.rows();
 
                 Bearing::operator()(matrix, timestep);
@@ -25,8 +27,13 @@ namespace aegean {
                 Eigen::MatrixXd rolled = tools::rollMatrix(bearings, -1);
                 for (uint i = 0; i < rolled.cols(); ++i)
                     rolled(duration - 1, i) = bearings(duration - 1, i) * noise(i);
-                _angular_velocity = (rolled - bearings);
-                _angular_velocity.unaryExpr([timestep](double val) { return std::fmod(val, 360.) / timestep; }); // result in degrees
+                _angular_velocity = -(rolled - bearings);
+                _angular_velocity.unaryExpr([timestep](double val) {
+                    double corrected_phi = val;
+                    if (abs(val) > 180)
+                        corrected_phi = sgn(corrected_phi) * (360 - corrected_phi);
+                    return corrected_phi / timestep;
+                }); // result in degrees
             }
 
             Eigen::MatrixXd get() override { return _angular_velocity; }

@@ -16,13 +16,12 @@ namespace aegean {
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {
                 const uint duration = matrix.rows();
-
                 Eigen::VectorXd noise = Eigen::VectorXd::Ones(matrix.cols())
                     - limbo::tools::random_vector_bounded(matrix.cols()) / 10;
-                Eigen::MatrixXd rolled = tools::rollMatrix(matrix, -1);
+                Eigen::MatrixXd rolled = tools::rollMatrix(matrix, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)
-                    rolled(duration - 1, i) = matrix(duration - 1, i) * noise(i);
-                Eigen::MatrixXd velocities = (rolled - matrix) / timestep;
+                    rolled(0, i) = matrix(0, i) * noise(i);
+                Eigen::MatrixXd velocities = (matrix - rolled) / timestep;
                 _velocity = velocities.array().abs().rowwise().mean();
             }
 

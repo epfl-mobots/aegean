@@ -38,8 +38,9 @@ namespace aegean {
                     Eigen::Vector2d pt(2);
                     pt(0) = p.x() - _center.x();
                     pt(1) = p.y() - _center.y();
-                    double tangent_brng = std::fmod(atan2(pt(1), pt(0)) + M_PI + M_PI_2, M_PI);
+                    double tangent_brng = std::fmod(atan2(pt(1), pt(0)) + M_PI, M_PI) + M_PI_2;
                     tangent_brng *= 180. / M_PI;
+                    tangent_brng = std::fmod(tangent_brng, 360);
                     double diff = tangent_brng - bearing;
                     if (abs(diff) > 180)
                         diff = -1 * sgn(diff) * (360 - abs(diff));
@@ -80,6 +81,15 @@ namespace aegean {
                     pt(0) = p.x() - _center.x();
                     pt(1) = p.y() - _center.y();
                     return _outer_r - pt.norm();
+                }
+
+                double angle(const Point& p) const
+                {
+                    Eigen::Vector2d pt(2);
+                    pt(0) = p.x() - _center.x();
+                    pt(1) = p.y() - _center.y();
+                    double phi = std::fmod(std::atan2(pt(1), pt(0)) + M_PI, M_PI) * 180. / M_PI;
+                    return phi;
                 }
 
                 bool is_valid(const Point& p) const

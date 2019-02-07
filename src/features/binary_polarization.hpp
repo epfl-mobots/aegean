@@ -27,10 +27,10 @@ namespace aegean {
 
                 Eigen::VectorXd noise = Eigen::VectorXd::Ones(angles.cols())
                     - limbo::tools::random_vector_bounded(angles.cols()) / 10;
-                Eigen::MatrixXd rolled = tools::rollMatrix(angles, -1);
+                Eigen::MatrixXd rolled = tools::rollMatrix(angles, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)
-                    rolled(duration - 1, i) = matrix(duration - 1, i) * noise(i);
-                Eigen::MatrixXd grad = (rolled - angles) / timestep;
+                    rolled(0, i) = matrix(0, i) * noise(i);
+                Eigen::MatrixXd grad = (angles - rolled) / timestep;
 
                 Eigen::MatrixXd polarization(angles.rows(), angles.cols());
                 for (uint ind = 0; ind < matrix.cols() / 2; ++ind) {

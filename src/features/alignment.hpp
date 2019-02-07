@@ -16,7 +16,6 @@ namespace aegean {
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {
                 Bearing::operator()(matrix, timestep);
-
                 _alignment = Eigen::MatrixXd::Zero(matrix.rows(), 1);
                 for (uint i = 0; i < matrix.rows(); ++i) {
                     for (uint j = 0; j < matrix.cols() / 2; ++j) {

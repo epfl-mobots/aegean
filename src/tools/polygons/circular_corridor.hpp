@@ -38,9 +38,8 @@ namespace aegean {
                     Eigen::Vector2d pt(2);
                     pt(0) = p.x() - _center.x();
                     pt(1) = p.y() - _center.y();
-                    double tangent_brng = std::atan2(pt(1), pt(0)) + M_PI_2;
+                    double tangent_brng = std::fmod(atan2(pt(1), pt(0)) + M_PI + M_PI_2, M_PI);
                     tangent_brng *= 180. / M_PI;
-                    tangent_brng = std::fmod(tangent_brng, 360.);
                     double diff = tangent_brng - bearing;
                     if (abs(diff) > 180)
                         diff = -1 * sgn(diff) * (360 - abs(diff));

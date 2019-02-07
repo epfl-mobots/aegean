@@ -27,11 +27,12 @@ namespace aegean {
                 _linear_velocity = Eigen::MatrixXd(duration, matrix.cols() / 2);
                 for (uint r = 0; r < _linear_velocity.rows(); ++r) {
                     for (uint c = 0; c < _linear_velocity.cols(); ++c) {
-                        double phi = std::atan2(velocities(r, c * 2), velocities(r, c * 2 + 1));
+                        double phi = std::atan2(velocities(r, c * 2 + 1), velocities(r, c * 2));
                         double resultant = std::sqrt(
                             std::pow(velocities(r, c * 2), 2)
                             + std::pow(velocities(r, c * 2 + 1), 2)
-                            + 2 * std::pow(velocities(r, c * 2), 2) * std::pow(velocities(r, c * 2), 2));
+                            + 2 * velocities(r, c * 2) * velocities(r, c * 2)
+                                * std::sin(phi));
                         _linear_velocity(r, c) = resultant;
                     }
                 }

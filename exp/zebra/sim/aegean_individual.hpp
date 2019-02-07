@@ -22,6 +22,7 @@ namespace simu {
 
         protected:
             Position<position_type_t> _desired_position;
+            Speed<speed_type_t> _desired_speed;
             bool _invalid_prediction;
         };
 

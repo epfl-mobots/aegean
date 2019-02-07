@@ -44,10 +44,10 @@ struct Params {
     };
 };
 
-Histogram lvh(std::make_pair(0., 1.), 0.02);
+Histogram lvh(std::make_pair(0., .3), 0.03);
 Histogram ah(std::make_pair(0., 1.), 0.05);
-Histogram iidh(std::make_pair(0., 360.), 5.);
-Histogram nwh(std::make_pair(0., .05), .002);
+Histogram iidh(std::make_pair(0., 180.), 5.);
+Histogram owh(std::make_pair(0., .1), .002);
 
 std::vector<Eigen::MatrixXd> load_original_distributions(const std::string& path, const int num_segments, const float timestep)
 {
@@ -57,10 +57,10 @@ std::vector<Eigen::MatrixXd> load_original_distributions(const std::string& path
     using distance_func_t = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
     InterIndividualDistance<distance_func_t> iid;
 
-    Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 50);
+    Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 10);
     Eigen::MatrixXd align_hist = Eigen::MatrixXd::Zero(1, 20);
-    Eigen::MatrixXd iid_hist = Eigen::MatrixXd::Zero(1, 72);
-    Eigen::MatrixXd nearest_wall_hist = Eigen::MatrixXd::Zero(1, 25);
+    Eigen::MatrixXd iid_hist = Eigen::MatrixXd::Zero(1, 36);
+    Eigen::MatrixXd outer_wall_hist = Eigen::MatrixXd::Zero(1, 50);
 
     // for every available experiment segment we compute the distributions
     for (int i = 0; i < num_segments; ++i) {
@@ -69,14 +69,23 @@ std::vector<Eigen::MatrixXd> load_original_distributions(const std::string& path
         archive.load(velocities, path + "/seg_" + std::to_string(i) + "_reconstructed_velocities.dat", 0);
 
         Eigen::MatrixXd res_velocities(velocities.rows(), velocities.cols() / 2);
-        for (uint j = 0; j < res_velocities.cols(); ++j) {
-            res_velocities.col(j) = (velocities.col(j * 2).array().pow(2) + velocities.col(j * 2 + 1).array().pow(2)).array().sqrt();
+        for (uint r = 0; r < res_velocities.rows(); ++r) {
+            for (uint c = 0; c < res_velocities.cols(); ++c) {
+                double phi = std::atan2(velocities(r, c * 2 + 1), velocities(r, c * 2));
+                double resultant = std::sqrt(
+                    std::pow(velocities(r, c * 2), 2)
+                    + std::pow(velocities(r, c * 2 + 1), 2)
+                    + 2 * velocities(r, c * 2) * velocities(r, c * 2)
+                        * std::sin(phi));
+                res_velocities(r, c) = resultant;
+            }
         }
-        Eigen::MatrixXd dist_to_nearest_wall(positions.rows(), positions.cols() / 2);
-        for (uint j = 0; j < dist_to_nearest_wall.cols(); ++j) {
+
+        Eigen::MatrixXd dist_to_outer_wall(positions.rows(), positions.cols() / 2);
+        for (uint j = 0; j < dist_to_outer_wall.cols(); ++j) {
             for (uint r = 0; r < positions.rows(); ++r) {
                 primitives::Point p(positions(r, j * 2), positions(r, j * 2 + 1));
-                dist_to_nearest_wall(r, j) = cc.min_distance(p);
+                dist_to_outer_wall(r, j) = cc.distance_to_outer_wall(p);
             }
         }
         align(positions, timestep);
@@ -86,20 +95,20 @@ std::vector<Eigen::MatrixXd> load_original_distributions(const std::string& path
         lin_vel_hist += lvh(res_velocities);
         align_hist += ah(align.get());
         iid_hist += iidh(iid.get() * 360);
-        nearest_wall_hist += nwh(dist_to_nearest_wall.rowwise().mean());
+        outer_wall_hist += owh(dist_to_outer_wall.rowwise().mean());
     }
     // normalize into probs
     lin_vel_hist /= lin_vel_hist.sum();
     align_hist /= align_hist.sum();
     iid_hist /= iid_hist.sum();
-    nearest_wall_hist /= nearest_wall_hist.sum();
+    outer_wall_hist /= outer_wall_hist.sum();
 
     archive.save(lin_vel_hist, path + "/linear_velocity_distribution");
     archive.save(align_hist, path + "/alignment_distribution");
     archive.save(iid_hist, path + "/inter_individual_distribution");
-    archive.save(nearest_wall_hist, path + "/nearest_wall_distribution");
+    archive.save(outer_wall_hist, path + "/outer_wall_distribution");
 
-    std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
+    std::vector<Eigen::MatrixXd> dists{lin_vel_hist, iid_hist};
     return dists;
 }
 
@@ -143,6 +152,9 @@ public:
 
         _aggregate_window = _window_in_seconds * (_fps / _num_centroids);
         _timestep = static_cast<float>(_num_centroids) / _fps;
+
+        _fit_file.open(_path + "/fitness.dat"); // erase last runs
+        _fit_file.close();
     }
 
     limbo::opt::eval_t operator()(const Eigen::VectorXd& params, bool grad = false) const
@@ -184,10 +196,10 @@ public:
 
             for (uint exclude_idx = 0; exclude_idx < _num_individuals; ++exclude_idx) {
                 // distribution vectors
-                Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 50);
+                Eigen::MatrixXd lin_vel_hist = Eigen::MatrixXd::Zero(1, 10);
                 Eigen::MatrixXd align_hist = Eigen::MatrixXd::Zero(1, 20);
-                Eigen::MatrixXd iid_hist = Eigen::MatrixXd::Zero(1, 72);
-                Eigen::MatrixXd nearest_wall_hist = Eigen::MatrixXd::Zero(1, 25);
+                Eigen::MatrixXd iid_hist = Eigen::MatrixXd::Zero(1, 36);
+                Eigen::MatrixXd outer_wall_hist = Eigen::MatrixXd::Zero(1, 50);
 
                 std::shared_ptr<Eigen::MatrixXd> generated_positions = std::make_shared<Eigen::MatrixXd>();
                 std::shared_ptr<Eigen::MatrixXd> generated_velocities = std::make_shared<Eigen::MatrixXd>();
@@ -208,37 +220,48 @@ public:
                 sim.spin();
 
                 {
-                    Eigen::MatrixXd res_velocities(velocities.rows(), 1);
-                    res_velocities.col(0) = ((*generated_velocities).col(exclude_idx * 2).array().pow(2) + (*generated_velocities).col(exclude_idx * 2 + 1).array().pow(2)).array().sqrt();
-
-                    Eigen::MatrixXd dist_to_nearest_wall(positions.rows(), 1);
-                    for (uint r = 0; r < (*generated_positions).rows(); ++r) {
-                        primitives::Point p((*generated_positions)(r, exclude_idx * 2), (*generated_positions)(r, exclude_idx * 2 + 1));
-                        dist_to_nearest_wall(r, 0) = cc.min_distance(p);
+                    Eigen::MatrixXd res_velocities(sim.sim_time(), 1);
+                    for (uint r = 0; r < res_velocities.rows(); ++r) {
+                        double phi = std::atan2((*generated_velocities)(r, exclude_idx * 2 + 1), (*generated_velocities)(r, exclude_idx * 2));
+                        double resultant = std::sqrt(
+                            std::pow((*generated_velocities)(r, exclude_idx * 2), 2)
+                            + std::pow((*generated_velocities)(r, exclude_idx * 2 + 1), 2)
+                            + 2 * (*generated_velocities)(r, exclude_idx * 2) * (*generated_velocities)(r, exclude_idx * 2)
+                                * std::sin(phi));
+                        res_velocities(r) = resultant;
                     }
-                    align((*generated_positions), _timestep);
-                    iid((*generated_positions), _timestep);
+
+                    Eigen::MatrixXd dist_to_outer_wall(sim.sim_time(), 1);
+                    for (uint r = 0; r < dist_to_outer_wall.rows(); ++r) {
+                        primitives::Point p((*generated_positions)(r, exclude_idx * 2), (*generated_positions)(r, exclude_idx * 2 + 1));
+                        dist_to_outer_wall(r, 0) = cc.distance_to_outer_wall(p);
+                    }
+                    align((*generated_positions).block(0, 0, sim.sim_time(), positions.cols()), _timestep);
+                    iid((*generated_positions).block(0, 0, sim.sim_time(), positions.cols()), _timestep);
 
                     // aggregate histograms
                     lin_vel_hist += lvh(res_velocities);
                     align_hist += ah(align.get());
                     iid_hist += iidh(iid.get() * 360);
-                    nearest_wall_hist += nwh(dist_to_nearest_wall.rowwise().mean());
+                    outer_wall_hist += owh(dist_to_outer_wall.rowwise().mean());
                 }
 
                 // normalize into probs
                 lin_vel_hist /= lin_vel_hist.sum();
                 align_hist /= align_hist.sum();
                 iid_hist /= iid_hist.sum();
-                nearest_wall_hist /= nearest_wall_hist.sum();
-                std::vector<Eigen::MatrixXd> dists{lin_vel_hist, align_hist, iid_hist, nearest_wall_hist};
+                outer_wall_hist /= outer_wall_hist.sum();
+                std::vector<Eigen::MatrixXd> dists{lin_vel_hist, iid_hist};
 
                 invalid_percentage += sim.descriptors()[0]->get()[0];
                 double distances = 1;
                 for (uint i = 0; i < dists.size(); ++i) {
                     double single_hd = 1 - _hd(_orig_dists[i], dists[i]);
+                    std::cout << single_hd << " ";
                     distances *= single_hd;
                 }
+                std::cout << std::endl;
+
                 fit += pow(distances, 1. / dists.size());
             } // exclude_idx
         } // exp_num
@@ -318,7 +341,7 @@ int main(int argc, char** argv)
     ZebraSim sim(orig_dists, num_individuals, num_segments, std::string(path));
     limbo::opt::Cmaes<Params> cmaes;
 
-    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(392 * behaviours, 1);
+    Eigen::MatrixXd random_params = Eigen::MatrixXd::Random(962 * behaviours, 1);
     Eigen::VectorXd res_cmaes = cmaes(sim, random_params, false);
 
     std::cout << "Result with CMA-ES:\t" << res_cmaes.transpose()

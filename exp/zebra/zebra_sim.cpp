@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     }
 #else
     Eigen::MatrixXd params;
-    archive.load(params, path + "/cmaes_iter_" + std::string(argv[4]) + "_weights.dat");
+    archive.load(params, path + "/cmaes_weights_e_" + std::string(argv[4]) + ".dat");
     for (uint b = 0; b < num_behaviours; ++b) {
         Eigen::MatrixXd behaviour_specific_params;
         behaviour_specific_params = params.block(

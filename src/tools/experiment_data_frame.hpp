@@ -194,11 +194,10 @@ namespace aegean {
             {
                 Eigen::MatrixXd diff;
                 const uint duration = matrix.rows();
-                Eigen::VectorXd noise = Eigen::VectorXd::Ones(matrix.cols())
-                    - limbo::tools::random_vector_bounded(matrix.cols()) / 10;
+                Eigen::VectorXd noise = limbo::tools::random_vector_bounded(matrix.cols()) * 0.01;
                 Eigen::MatrixXd rolled = tools::rollMatrix(matrix, -1);
                 for (uint i = 0; i < rolled.cols(); ++i)
-                    rolled(duration - 1, i) = matrix(duration - 1, i) * noise(i);
+                    rolled(duration - 1, i) = matrix(duration - 1, i) + noise(i);
                 diff = (rolled - matrix) / _timestep;
                 return diff;
             }

@@ -17,11 +17,10 @@ namespace aegean {
             {
                 const uint duration = matrix.rows();
 
-                Eigen::VectorXd noise = Eigen::VectorXd::Ones(matrix.cols())
-                    - limbo::tools::random_vector_bounded(matrix.cols()) / 10;
+                Eigen::VectorXd noise = limbo::tools::random_vector_bounded(matrix.cols()) * 0.01;
                 Eigen::MatrixXd rolled = tools::rollMatrix(matrix, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)
-                    rolled(0, i) = matrix(0, i) * noise(i);
+                    rolled(0, i) = matrix(0, i) + noise(i);
                 Eigen::MatrixXd velocities = (matrix - rolled) / timestep;
 
                 _linear_velocity = Eigen::MatrixXd(duration, matrix.cols() / 2);

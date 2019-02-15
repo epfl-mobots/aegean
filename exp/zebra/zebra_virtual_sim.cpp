@@ -117,7 +117,7 @@ int main(int argc, char** argv)
                 double x = pt.x() - cc.center().x();
                 double y = pt.y() - cc.center().y();
                 radius(i) = std::sqrt(pow(x, 2) + pow(y, 2));
-                phi(i) = std::fmod(std::atan2(y, x) + M_PI, M_PI);
+                phi(i) = std::fmod(std::atan2(y, x) + 2 * M_PI, 2 * M_PI);
                 ++i;
             }
         }

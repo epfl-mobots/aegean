@@ -38,7 +38,7 @@ namespace aegean {
                     Eigen::Vector2d pt(2);
                     pt(0) = p.x() - _center.x();
                     pt(1) = p.y() - _center.y();
-                    double tangent_brng = std::fmod(atan2(pt(1), pt(0)) + M_PI, M_PI) + M_PI_2;
+                    double tangent_brng = std::fmod(atan2(pt(1), pt(0)) + 2 * M_PI, 2 * M_PI) + M_PI_2;
                     tangent_brng *= 180. / M_PI;
                     tangent_brng = std::fmod(tangent_brng, 360);
                     double diff = tangent_brng - bearing;
@@ -67,6 +67,14 @@ namespace aegean {
                         return true;
                 }
 
+                double distance_to_center(const Point& p) const
+                {
+                    Eigen::Vector2d pt(2);
+                    pt(0) = p.x() - _center.x();
+                    pt(1) = p.y() - _center.y();
+                    return pt.norm();
+                }
+
                 double distance_to_inner_wall(const Point& p) const
                 {
                     Eigen::Vector2d pt(2);
@@ -88,7 +96,7 @@ namespace aegean {
                     Eigen::Vector2d pt(2);
                     pt(0) = p.x() - _center.x();
                     pt(1) = p.y() - _center.y();
-                    double phi = std::fmod(std::atan2(pt(1), pt(0)) + M_PI, M_PI) * 180. / M_PI;
+                    double phi = std::fmod(std::atan2(pt(1), pt(0)) + 2 * M_PI, 2 * M_PI) * 180. / M_PI;
                     return phi;
                 }
 

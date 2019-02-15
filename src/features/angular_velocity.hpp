@@ -17,17 +17,15 @@ namespace aegean {
             {
                 using namespace tools;
 
-                const uint duration = matrix.rows();
-
                 Bearing::operator()(matrix, timestep);
                 Eigen::MatrixXd bearings = Bearing::get();
 
-                Eigen::VectorXd noise = Eigen::VectorXd::Ones(bearings.cols())
-                    - limbo::tools::random_vector_bounded(bearings.cols()) * 5;
-                Eigen::MatrixXd rolled = tools::rollMatrix(bearings, -1);
+                Eigen::VectorXd noise = limbo::tools::random_vector_bounded(bearings.cols()) * 3;
+                Eigen::MatrixXd rolled = tools::rollMatrix(bearings, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)
-                    rolled(duration - 1, i) = bearings(duration - 1, i) * noise(i);
-                _angular_velocity = -(rolled - bearings);
+                    rolled(0, i) = bearings(0, i) + noise(i);
+
+                _angular_velocity = -(bearings - rolled);
                 _angular_velocity.unaryExpr([timestep](double val) {
                     double corrected_phi = val;
                     if (abs(val) > 180)

@@ -25,11 +25,10 @@ namespace aegean {
                         angles(i, ind) = std::fmod(std::atan2(y_centered(i), x_centered(i)) * 180 / M_PI + 360, 360);
                 }
 
-                Eigen::VectorXd noise = Eigen::VectorXd::Ones(angles.cols())
-                    - limbo::tools::random_vector_bounded(angles.cols()) / 10;
+                Eigen::VectorXd noise = limbo::tools::random_vector_bounded(angles.cols()) * 3;
                 Eigen::MatrixXd rolled = tools::rollMatrix(angles, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)
-                    rolled(0, i) = matrix(0, i) * noise(i);
+                    rolled(0, i) = angles(0, i) + noise(i);
                 Eigen::MatrixXd grad = (angles - rolled) / timestep;
 
                 Eigen::MatrixXd polarization(angles.rows(), angles.cols());

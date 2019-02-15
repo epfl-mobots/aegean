@@ -13,6 +13,7 @@
 #include <features/angle_difference.hpp>
 #include <features/linear_velocity_difference.hpp>
 #include <features/angular_velocity_difference.hpp>
+#include <features/radial_velocity.hpp>
 
 #include <limbo/tools/random_generator.hpp>
 
@@ -41,8 +42,10 @@ namespace simu {
             if (_is_robot) {
                 auto asim = std::dynamic_pointer_cast<AegeanSimulation>(sim);
 
+                // the complete feature set
+                using circular_corridor_t = polygons::CircularCorridor<Params>;
                 using distance_func_t
-                    = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+                    = defaults::distance_functions::angular<circular_corridor_t>;
                 using euc_distance_func_t
                     = defaults::distance_functions::euclidean;
                 features::InterIndividualDistance<distance_func_t> iid;
@@ -56,50 +59,44 @@ namespace simu {
                 features::AngularVelocityDifference avdif;
                 features::Bearing brng;
                 features::Alignment align;
+                features::RadialVelocity<circular_corridor_t> rvel;
 
                 int num_individuals = asim->individuals().size();
                 float dt = sim->sim_settings().timestep;
-
-                Eigen::MatrixXd pos(1, (num_individuals - 1) * 2);
-                Eigen::MatrixXd vel(1, (num_individuals - 1) * 2);
-                int idx = 0;
-                for (const IndividualPtr ind : asim->individuals()) {
-                    if (_id == ind->id())
-                        continue;
-                    pos(idx) = ind->position().x;
-                    pos(idx + 1) = ind->position().y;
-                    vel(idx) = ind->speed().vx;
-                    vel(idx + 1) = ind->speed().vy;
-                    idx += 2;
-                }
-                Eigen::MatrixXd epos(1, pos.cols() + 2);
-                epos << pos, _position.x, _position.y;
-
                 auto nets = asim->network();
                 uint inputs = nets[0]->layers()[0]->input();
                 Eigen::MatrixXd nrow(1, inputs);
 
+                // if it is the first iteration we can not compute derivatives
+                // but after the second iteration we always take at least to timesteps
+                // to compute the derivative (velocities, etc)
                 Eigen::MatrixXd pos_block;
-                if (asim->iteration() > 0) {
+                if (asim->iteration() < 1) {
+                    pos_block = asim->orig_positions()->block(0, 0, 2, asim->generated_positions()->cols());
+                }
+                else if (asim->iteration() < 2) {
                     pos_block = asim->generated_positions()->block(asim->iteration() - 1, 0, 2, asim->generated_positions()->cols());
                 }
                 else {
-                    pos_block = asim->orig_positions()->block(0, 0, 2, asim->generated_positions()->cols());
+                    pos_block = asim->generated_positions()->block(asim->iteration() - 2, 0, 3, asim->generated_positions()->cols());
                 }
 
-                iid(pos_block, dt);
-                lvel(pos_block, dt);
-                avel(pos_block, dt);
-                ldist(pos_block, dt);
-                adist(pos_block, dt);
-                adif(pos_block, dt);
-                lvdif(pos_block, dt);
-                brng(pos_block, dt);
-                align(pos_block, dt);
+                iid(pos_block.bottomRows(2), dt);
+                lvel(pos_block.bottomRows(2), dt);
+                avel(pos_block, dt); // here we used the 3rd derivative
+                ldist(pos_block.bottomRows(2), dt);
+                adist(pos_block.bottomRows(2), dt);
+                adif(pos_block.bottomRows(2), dt);
+                lvdif(pos_block.bottomRows(2), dt);
+                brng(pos_block.bottomRows(2), dt);
+                align(pos_block.bottomRows(2), dt);
+                rvel(pos_block.bottomRows(2), dt);
 
                 Eigen::MatrixXd iids = iid.get();
                 Eigen::MatrixXd lvels = lvel.get();
-                Eigen::MatrixXd avels = avel.get() / 360;
+                Eigen::MatrixXd avels = avel.get().bottomRows(2) / 360; // here we used the 3rd derivative
+                Eigen::MatrixXd rvels = rvel.get();
+
                 // get only the distance from the focal individual to the neighbours
                 Eigen::MatrixXd ldists = ldist.get_vec()[_id];
                 Eigen::MatrixXd adists = adist.get_vec()[_id] / 360;
@@ -122,8 +119,14 @@ namespace simu {
 
                 polygons::Point p(_position.x, _position.y);
 
-                nrow << _speed.vx,
+                nrow <<
+#ifdef POLAR_INPUTS
+                    avels(1, _id),
+                    rvels(1, _id),
+#else
+                    _speed.vx,
                     _speed.vy,
+#endif
                     reduced_ldist,
                     reduced_adist,
                     reduced_lvdif,
@@ -139,7 +142,6 @@ namespace simu {
                 }
                 else {
                     Eigen::MatrixXd features(1, 2);
-                    uint row_idx;
                     features << iid.get()(1), align.get()(1);
                     auto km = asim->kmeans();
                     label = km->predict(features)(0);
@@ -152,13 +154,14 @@ namespace simu {
                 // static thread_local limbo::tools::rgen_double_t rgen(-0.08 * dt,
                 //     0.08 * dt); // adding some random noise to the generated position
 
+#ifdef POLAR_INPUTS
+                // drdt = cc.distance
+#else
                 _desired_speed.vx = _speed.vx + prediction(0) * dt;
                 _desired_speed.vy = _speed.vy + prediction(1) * dt;
-                // std::cout << prediction * dt << std::endl;
                 _desired_position.x = _position.x + _desired_speed.vx * dt /*+ rgen.rand()*/;
                 _desired_position.y = _position.y + _desired_speed.vy * dt /*+ rgen.rand()*/;
-                // std::cout << _position.x << " " << _position.y << " " << _desired_position.x << " "
-                //   << " " << _desired_position.y << std::endl;
+#endif
                 p.x() = _desired_position.x;
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);

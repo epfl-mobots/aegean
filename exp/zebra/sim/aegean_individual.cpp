@@ -119,14 +119,8 @@ namespace simu {
 
                 polygons::Point p(_position.x, _position.y);
 
-                nrow <<
-#ifdef POLAR_INPUTS
-                    avels(1, _id),
-                    rvels(1, _id),
-#else
-                    _speed.vx,
+                nrow << _speed.vx,
                     _speed.vy,
-#endif
                     reduced_ldist,
                     reduced_adist,
                     reduced_lvdif,
@@ -154,14 +148,10 @@ namespace simu {
                 // static thread_local limbo::tools::rgen_double_t rgen(-0.08 * dt,
                 //     0.08 * dt); // adding some random noise to the generated position
 
-#ifdef POLAR_INPUTS
-                // drdt = cc.distance
-#else
                 _desired_speed.vx = _speed.vx + prediction(0) * dt;
                 _desired_speed.vy = _speed.vy + prediction(1) * dt;
                 _desired_position.x = _position.x + _desired_speed.vx * dt /*+ rgen.rand()*/;
                 _desired_position.y = _position.y + _desired_speed.vy * dt /*+ rgen.rand()*/;
-#endif
                 p.x() = _desired_position.x;
                 p.y() = _desired_position.y;
                 bool valid = cc.in_polygon(p);

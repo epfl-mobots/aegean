@@ -13,6 +13,8 @@
 #include <features/distance_to_agents.hpp>
 #include <features/angle_difference.hpp>
 #include <features/linear_velocity_difference.hpp>
+#include <features/angular_velocity_difference.hpp>
+#include <features/radial_velocity.hpp>
 
 #include <Eigen/Core>
 #include <iostream>
@@ -30,7 +32,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 60000);
+        BO_PARAM(int, iterations, 120000);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate
@@ -114,8 +116,10 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
     // Below we initialize all the input features that will be necessary for the net
     float timestep = static_cast<float>(centroids) / fps;
     uint aggregate_window = window_in_seconds * (fps / centroids);
+    // the complete feature set
+    using circular_corridor_t = polygons::CircularCorridor<Params>;
     using distance_func_t
-        = defaults::distance_functions::angular<polygons::CircularCorridor<Params>>;
+        = defaults::distance_functions::angular<circular_corridor_t>;
     using euc_distance_func_t
         = defaults::distance_functions::euclidean;
     features::InterIndividualDistance<distance_func_t> iid;
@@ -126,7 +130,10 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
     features::DistanceToAgents<distance_func_t> adist;
     features::AngleDifference adif;
     features::LinearVelocityDifference lvdif;
+    features::AngularVelocityDifference avdif;
     features::Bearing brng;
+    features::Alignment align;
+    features::RadialVelocity<circular_corridor_t> rvel;
 
     // compute the size of each behaviour specific nn
     // to avoid using resize function for eigen matrices
@@ -139,7 +146,7 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
     }
 
     // set the dims we just calculated
-    uint DIMS_IN = 24;
+    uint DIMS_IN = 25;
     uint DIMS_OUT = 2;
     std::vector<Eigen::MatrixXd> inputs(behaviours), outputs(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
@@ -157,6 +164,7 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
         archive.load(positions, position_files[i]);
         archive.load(velocities, velocity_files[i]);
         Eigen::MatrixXd rolled_positions = tools::rollMatrix(positions, -1);
+        Eigen::MatrixXd rolled_velocities = tools::rollMatrix(velocities, -1);
 
         uint num_individuals = positions.cols() / 2;
         assert(labels.rows() == (positions.rows() / aggregate_window) && "Dimensions don't match");
@@ -166,41 +174,49 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
             Eigen::MatrixXd pblock = positions.block(idx, 0, aggregate_window - 1, positions.cols());
             Eigen::MatrixXd rpblock = rolled_positions.block(idx, 0, aggregate_window - 1, rolled_positions.cols());
             Eigen::MatrixXd vblock = velocities.block(idx, 0, aggregate_window - 1, velocities.cols());
+            Eigen::MatrixXd rvblock = rolled_velocities.block(idx, 0, aggregate_window - 1, rolled_velocities.cols());
 
-            for (uint skip = 0, ind = 0; ind < num_individuals; ++skip, ++ind) {
+            for (uint ind = 0; ind < num_individuals; ++ind) {
                 // below we compute all the inputs for our net's input layer
                 Eigen::MatrixXd target(rpblock.rows(), DIMS_OUT);
                 Eigen::MatrixXd pos_t(rpblock.rows(), 2);
                 Eigen::MatrixXd pos_t_1(pblock.rows(), 2);
+                Eigen::MatrixXd vel_t(rvblock.rows(), 2);
+                Eigen::MatrixXd vel_t_1(vblock.rows(), 2);
+
                 iid(pblock, timestep);
                 lvel(pblock, timestep);
-                avel(pblock, timestep);
+                avel(pblock, timestep); // here we used the 3rd derivative
                 ldist(pblock, timestep);
                 adist(pblock, timestep);
                 adif(pblock, timestep);
                 lvdif(pblock, timestep);
                 brng(pblock, timestep);
+                align(pblock, timestep);
+                rvel(pblock, timestep);
+
                 Eigen::MatrixXd iids = iid.get();
                 Eigen::MatrixXd lvels = lvel.get();
-                Eigen::MatrixXd avels = avel.get() / 360;
+                Eigen::MatrixXd avels = avel.get().bottomRows(2) / 360; // here we used the 3rd derivative
+                Eigen::MatrixXd rvels = rvel.get();
+
                 // get only the distance from the focal individual to the neighbours
                 Eigen::MatrixXd ldists = ldist.get_vec()[ind];
                 Eigen::MatrixXd adists = adist.get_vec()[ind] / 360;
                 Eigen::MatrixXd lvdifs = lvdif.get_vec()[ind];
                 Eigen::MatrixXd adifs = adif.get_vec()[ind] / 360;
 
-                // get current pos and previous pos and
-                // calculate the delta pos
-                pos_t.col(0) = rpblock.col(skip * 2).array();
-                pos_t.col(1) = rpblock.col(skip * 2 + 1).array();
-                pos_t_1.col(0) = pblock.col(skip * 2).array();
-                pos_t_1.col(1) = pblock.col(skip * 2 + 1).array();
-                Eigen::MatrixXd dpos = pos_t - pos_t_1;
-                target.col(0) = dpos.col(0) / timestep; // dx
-                target.col(1) = dpos.col(1) / timestep; // dy
+                vel_t.col(0) = rvblock.col(ind * 2).array();
+                vel_t.col(1) = rvblock.col(ind * 2 + 1).array();
+                vel_t_1.col(0) = vblock.col(ind * 2).array();
+                vel_t_1.col(1) = vblock.col(ind * 2 + 1).array();
+                Eigen::MatrixXd dvel = vel_t - vel_t_1;
+
+                target.col(0) = dvel.col(0);
+                target.col(1) = dvel.col(1);
 
                 // remove columns corresponding to the excluded individual
-                std::vector<uint> rm = {skip * 2, skip * 2 + 1};
+                std::vector<uint> rm = {ind * 2, ind * 2 + 1};
                 Eigen::MatrixXd reduced_pblock = pblock;
                 Eigen::MatrixXd reduced_vblock = vblock;
                 tools::removeCols(reduced_pblock, rm);
@@ -217,26 +233,33 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
                             continue;
                         reduced_ldist(idx) = ldists(c, l);
                         reduced_adist(idx) = adists(c, l);
-                        reduced_lvdif(idx) = lvdifs(c, l);
                         reduced_adif(idx) = adifs(c, l);
+                        reduced_lvdif(idx) = lvdifs(c, l);
                         ++idx;
                     } // excluding the focal individual
 
-                    Eigen::MatrixXd ind_pos_t_1 = pblock.block(c, skip * 2, 1, 2);
+                    Eigen::MatrixXd ind_pos_t_1 = pblock.block(c, ind * 2, 1, 2);
                     polygons::Point p(ind_pos_t_1(0), ind_pos_t_1(1));
+                    double vx = (pos_t(c, 0) - pos_t_1(c, 0)) / timestep;
+                    double vy = (pos_t(c, 1) - pos_t_1(c, 1)) / timestep;
 
                     Eigen::MatrixXd nrow(1, inputs[0].cols());
-                    nrow << ind_pos_t_1,
+                    nrow << vx,
+                        vy,
                         reduced_ldist,
                         reduced_adist,
                         reduced_lvdif,
                         reduced_adif,
+                        align.get()(1),
                         cc.distance_to_outer_wall(p),
-                        cc.angle_to_nearest_wall(p, brng.get()(c, ind)) / 360;
+                        cc.angle_to_nearest_wall(p, brng.get()(1, ind)) / 360;
+
                     inputs[labels(j)].row(cur_row[labels(j)]) = nrow;
                     outputs[labels(j)].row(cur_row[labels(j)]) = target.row(c);
                     ++cur_row[labels(j)];
                 } // c
+
+                break; // TODO: remove
             } // ind
         } // j
     } // i

@@ -114,6 +114,7 @@ namespace aegean {
 
                 // use the extra rows to compute the features and then remove them
                 _compute_velocities();
+                _compute_accelerations();
 
                 // eigen does not always behave well with matrix = matrix.block(...)
                 {
@@ -128,6 +129,8 @@ namespace aegean {
 
             const Eigen::MatrixXd& positions() const { return _positions; }
             const Eigen::MatrixXd& velocities() const { return _velocities; }
+            const Eigen::MatrixXd& accelerations() const { return _accelerations; }
+
             uint fps() const { return _fps; }
             uint centroid_samples() const { return _centroid_samples; }
             float scale() const { return _scale; }
@@ -190,6 +193,11 @@ namespace aegean {
                 _velocities = _compute_diff(_positions);
             }
 
+            void _compute_accelerations()
+            {
+                _accelerations = _compute_diff(_velocities);
+            }
+
             Eigen::MatrixXd _compute_diff(const Eigen::MatrixXd& matrix) const
             {
                 Eigen::MatrixXd diff;
@@ -204,6 +212,8 @@ namespace aegean {
 
             Eigen::MatrixXd _positions;
             Eigen::MatrixXd _velocities;
+            Eigen::MatrixXd _accelerations;
+
             const uint _fps;
             const uint _centroid_samples;
             const float _timestep;

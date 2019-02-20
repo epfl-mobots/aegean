@@ -113,6 +113,13 @@ def build(bld):
     # exps
     bld.program(features='cxx',
                 install_path=None,
+                source='exp/zebra/preprocess_trajectories.cpp',
+                includes='./src ./src/limbo/src',
+                uselib=libs,
+                target='preprocess_trajectories')
+
+    bld.program(features='cxx',
+                install_path=None,
                 source='exp/zebra/zebra_etho_gen.cpp',
                 includes='./src ./src/limbo/src',
                 uselib=libs,

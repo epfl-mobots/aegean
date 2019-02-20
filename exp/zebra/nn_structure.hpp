@@ -6,9 +6,9 @@
 namespace nn_strucutre {
     void init_nn(simple_nn::NeuralNet& net, uint num_individuals)
     {
-        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(25, 100);
-        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 100);
-        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(100, 2); // dr cosdphi sindphi
+        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(10, 20);
+        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
+        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 2); // dr cosdphi sindphi
     }
 
     void init_nn(std::vector<std::shared_ptr<simple_nn::NeuralNet>>& net, uint num_behaviours, uint num_individuals)

@@ -32,7 +32,7 @@ struct Params {
     struct opt_adam {
         /// @ingroup opt_defaults
         /// number of max iterations
-        BO_PARAM(int, iterations, 120000);
+        BO_PARAM(int, iterations, 100000);
 
         /// @ingroup opt_defaults
         /// alpha - learning rate
@@ -55,24 +55,17 @@ struct Params {
 std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_nn_sets(int argc, char** argv)
 {
     Archive archive(false);
-
     std::string path(argv[1]);
     int num_experiments = std::stoi(argv[2]);
 
     std::vector<std::string> position_files;
-    for (int i = 0; i < num_experiments; ++i)
-        position_files.push_back(path
-            + "/seg_" + std::to_string(i) + "_reconstructed_positions.dat");
-
     std::vector<std::string> velocity_files;
-    for (int i = 0; i < num_experiments; ++i)
-        velocity_files.push_back(path
-            + "/seg_" + std::to_string(i) + "_reconstructed_velocities.dat");
-
     std::vector<std::string> label_files;
-    for (int i = 0; i < num_experiments; ++i)
-        label_files.push_back(path
-            + "/seg_" + std::to_string(i) + "_labels.dat");
+    for (int i = 0; i < num_experiments; ++i) {
+        position_files.push_back(path + "/seg_" + std::to_string(i) + "_reconstructed_positions.dat");
+        velocity_files.push_back(path + "/seg_" + std::to_string(i) + "_reconstructed_velocities.dat");
+        label_files.push_back(path + "/seg_" + std::to_string(i) + "_labels.dat");
+    }
 
     uint centroids;
     {
@@ -116,24 +109,11 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
     // Below we initialize all the input features that will be necessary for the net
     float timestep = static_cast<float>(centroids) / fps;
     uint aggregate_window = window_in_seconds * (fps / centroids);
+
     // the complete feature set
-    using circular_corridor_t = polygons::CircularCorridor<Params>;
-    using distance_func_t
-        = defaults::distance_functions::angular<circular_corridor_t>;
-    using euc_distance_func_t
-        = defaults::distance_functions::euclidean;
-    features::InterIndividualDistance<distance_func_t> iid;
-    polygons::CircularCorridor<Params> cc;
-    features::LinearVelocity lvel;
-    features::AngularVelocity avel;
-    features::DistanceToAgents<euc_distance_func_t> ldist;
-    features::DistanceToAgents<distance_func_t> adist;
-    features::AngleDifference adif;
-    features::LinearVelocityDifference lvdif;
-    features::AngularVelocityDifference avdif;
-    features::Bearing brng;
-    features::Alignment align;
-    features::RadialVelocity<circular_corridor_t> rvel;
+    // using circular_corridor_t = polygons::CircularCorridor<Params>;
+    // using distance_func_t = defaults::distance_functions::angular<circular_corridor_t>;
+    // using euc_distance_func_t = defaults::distance_functions::euclidean;
 
     // compute the size of each behaviour specific nn
     // to avoid using resize function for eigen matrices
@@ -142,11 +122,11 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
         Eigen::MatrixXi labels;
         archive.load(labels, label_files[i]);
         for (uint b = 0; b < behaviours; ++b)
-            sizes[b] += (labels.array() == static_cast<int>(b)).count() * (aggregate_window - 1) * num_individuals;
+            sizes[b] += (labels.array() == static_cast<int>(b)).count() * aggregate_window * num_individuals;
     }
 
     // set the dims we just calculated
-    uint DIMS_IN = 25;
+    uint DIMS_IN = 10;
     uint DIMS_OUT = 2;
     std::vector<Eigen::MatrixXd> inputs(behaviours), outputs(behaviours);
     for (uint b = 0; b < behaviours; ++b) {
@@ -170,96 +150,46 @@ std::pair<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>> construct_
         assert(labels.rows() == (positions.rows() / aggregate_window) && "Dimensions don't match");
 
         for (uint j = 0; j < labels.rows(); ++j) {
+            // we only keep the segment that corresponds to the aggragation window
+            // this specific to the ethograms
             uint idx = j * aggregate_window;
-            Eigen::MatrixXd pblock = positions.block(idx, 0, aggregate_window - 1, positions.cols());
-            Eigen::MatrixXd rpblock = rolled_positions.block(idx, 0, aggregate_window - 1, rolled_positions.cols());
-            Eigen::MatrixXd vblock = velocities.block(idx, 0, aggregate_window - 1, velocities.cols());
-            Eigen::MatrixXd rvblock = rolled_velocities.block(idx, 0, aggregate_window - 1, rolled_velocities.cols());
+            Eigen::MatrixXd pos_block
+                = positions.block(idx, 0, aggregate_window, positions.cols());
+            Eigen::MatrixXd rolled_pos_block
+                = rolled_positions.block(idx, 0, aggregate_window, rolled_positions.cols());
+            Eigen::MatrixXd vel_block
+                = velocities.block(idx, 0, aggregate_window, velocities.cols());
+            Eigen::MatrixXd rolled_vel_block
+                = rolled_velocities.block(idx, 0, aggregate_window, rolled_velocities.cols());
 
             for (uint ind = 0; ind < num_individuals; ++ind) {
-                // below we compute all the inputs for our net's input layer
-                Eigen::MatrixXd target(rpblock.rows(), DIMS_OUT);
-                Eigen::MatrixXd pos_t(rpblock.rows(), 2);
-                Eigen::MatrixXd pos_t_1(pblock.rows(), 2);
-                Eigen::MatrixXd vel_t(rvblock.rows(), 2);
-                Eigen::MatrixXd vel_t_1(vblock.rows(), 2);
-
-                iid(pblock, timestep);
-                lvel(pblock, timestep);
-                avel(pblock, timestep); // here we used the 3rd derivative
-                ldist(pblock, timestep);
-                adist(pblock, timestep);
-                adif(pblock, timestep);
-                lvdif(pblock, timestep);
-                brng(pblock, timestep);
-                align(pblock, timestep);
-                rvel(pblock, timestep);
-
-                Eigen::MatrixXd iids = iid.get();
-                Eigen::MatrixXd lvels = lvel.get();
-                Eigen::MatrixXd avels = avel.get().bottomRows(2) / 360; // here we used the 3rd derivative
-                Eigen::MatrixXd rvels = rvel.get();
-
-                // get only the distance from the focal individual to the neighbours
-                Eigen::MatrixXd ldists = ldist.get_vec()[ind];
-                Eigen::MatrixXd adists = adist.get_vec()[ind] / 360;
-                Eigen::MatrixXd lvdifs = lvdif.get_vec()[ind];
-                Eigen::MatrixXd adifs = adif.get_vec()[ind] / 360;
-
-                vel_t.col(0) = rvblock.col(ind * 2).array();
-                vel_t.col(1) = rvblock.col(ind * 2 + 1).array();
-                vel_t_1.col(0) = vblock.col(ind * 2).array();
-                vel_t_1.col(1) = vblock.col(ind * 2 + 1).array();
-                Eigen::MatrixXd dvel = vel_t - vel_t_1;
-
-                target.col(0) = dvel.col(0);
-                target.col(1) = dvel.col(1);
+                Eigen::MatrixXd pos_t = rolled_pos_block.block(0, ind * 2, rolled_pos_block.rows(), 2);
+                Eigen::MatrixXd pos_t_1 = pos_block.block(0, ind * 2, pos_block.rows(), 2);
+                Eigen::MatrixXd dpos = pos_t - pos_t_1;
+                Eigen::MatrixXd target = pos_t;
 
                 // remove columns corresponding to the excluded individual
                 std::vector<uint> rm = {ind * 2, ind * 2 + 1};
-                Eigen::MatrixXd reduced_pblock = pblock;
-                Eigen::MatrixXd reduced_vblock = vblock;
-                tools::removeCols(reduced_pblock, rm);
-                tools::removeCols(reduced_vblock, rm);
+                Eigen::MatrixXd reduced_pos_block = pos_block;
+                Eigen::MatrixXd reduced_vel_block = vel_block;
+                tools::removeCols(reduced_pos_block, rm);
+                tools::removeCols(reduced_vel_block, rm);
 
                 // split the resulting data into inputs and outputs
-                for (uint c = 0; c < pblock.rows(); ++c) {
-                    Eigen::MatrixXd reduced_ldist(1, num_individuals - 1);
-                    Eigen::MatrixXd reduced_adist(1, num_individuals - 1);
-                    Eigen::MatrixXd reduced_lvdif(1, num_individuals - 1);
-                    Eigen::MatrixXd reduced_adif(1, num_individuals - 1);
-                    for (uint l = 0, idx = 0; l < num_individuals; ++l) {
-                        if (l == ind)
-                            continue;
-                        reduced_ldist(idx) = ldists(c, l);
-                        reduced_adist(idx) = adists(c, l);
-                        reduced_adif(idx) = adifs(c, l);
-                        reduced_lvdif(idx) = lvdifs(c, l);
-                        ++idx;
-                    } // excluding the focal individual
-
-                    Eigen::MatrixXd ind_pos_t_1 = pblock.block(c, ind * 2, 1, 2);
-                    polygons::Point p(ind_pos_t_1(0), ind_pos_t_1(1));
-                    double vx = (pos_t(c, 0) - pos_t_1(c, 0)) / timestep;
-                    double vy = (pos_t(c, 1) - pos_t_1(c, 1)) / timestep;
-
+                for (uint c = 0; c < pos_block.rows(); ++c) {
                     Eigen::MatrixXd nrow(1, inputs[0].cols());
-                    nrow << vx,
-                        vy,
-                        reduced_ldist,
-                        reduced_adist,
-                        reduced_lvdif,
-                        reduced_adif,
-                        align.get()(1),
-                        cc.distance_to_outer_wall(p),
-                        cc.angle_to_nearest_wall(p, brng.get()(1, ind)) / 360;
-
+                    nrow <<
+                        // net inputs
+                        reduced_pos_block.block(c, 0, 1, (num_individuals - 1) * 2)
+                        // pos_t_1.block(c, 0, 1, 2)
+                        // net inputs
+                        ;
                     inputs[labels(j)].row(cur_row[labels(j)]) = nrow;
                     outputs[labels(j)].row(cur_row[labels(j)]) = target.row(c);
                     ++cur_row[labels(j)];
                 } // c
 
-                break; // TODO: remove
+                // break; // TODO: remove
             } // ind
         } // j
     } // i
@@ -390,7 +320,7 @@ int main(int argc, char** argv)
     uint aggregate_window = window_in_seconds * (fps / centroids);
 #endif
 
-    int N = 1024;
+    int N = 128;
     for (uint behav = 0; behav < inputs.size(); ++behav) {
         simple_nn::NeuralNet network;
         nn_strucutre::init_nn(network, num_individuals);
@@ -421,7 +351,7 @@ int main(int argc, char** argv)
                 int idx = -1;
                 while (idx < 0) {
                     idx = rgen.rand();
-                    if ((idx % (aggregate_window - 1)) == 0)
+                    if ((idx % (aggregate_window)) == 0)
                         idx = -1;
                 }
                 samples.col(i) = inputs[behav].transpose().col(idx);

@@ -39,7 +39,7 @@ namespace simu {
                 idcs.push_back(i);
             std::random_device rd;
             std::mt19937 g(rd());
-            std::shuffle(idcs.begin(), idcs.end(), g);
+            // std::shuffle(idcs.begin(), idcs.end(), g);
 
             // update the current positions acccording to
             // the most recent prediction

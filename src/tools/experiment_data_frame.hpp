@@ -5,7 +5,7 @@
 #include <features/no_feature.hpp>
 #include <tools/reconstruction/no_reconstruction.hpp>
 #include <tools/mathtools.hpp>
-#include <limbo/tools/random_generator.hpp>
+#include <tools/random_generator.hpp>
 
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/for_each.hpp>
@@ -205,7 +205,6 @@ namespace aegean {
             Eigen::MatrixXd _compute_diff(const Eigen::MatrixXd& matrix) const
             {
                 Eigen::MatrixXd diff;
-                const uint duration = matrix.rows();
                 Eigen::VectorXd noise = limbo::tools::random_vector_bounded(matrix.cols()) * 0.01;
                 Eigen::MatrixXd rolled = tools::rollMatrix(matrix, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)

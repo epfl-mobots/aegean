@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+
+def build(bld):
+    obj = bld.program(features='cxx',
+                      source='kmeans_example.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='kmeans_example')
+
+    obj = bld.program(features='cxx',
+                      source='persistence_example.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='persistence_example')
+
+    obj = bld.program(features='cxx',
+                      source='histogram_example.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='histogram_example')

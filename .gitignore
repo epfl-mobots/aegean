@@ -1,3 +1,4 @@
+exp/
 *.code-workspace
 build/
 *.dat

@@ -4,7 +4,7 @@
 #include <cmath>
 #include <features/feature_base.hpp>
 #include <tools/mathtools.hpp>
-#include <limbo/tools/random_generator.hpp>
+#include <tools/random_generator.hpp>
 
 namespace aegean {
     namespace features {

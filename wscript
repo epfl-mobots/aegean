@@ -2,11 +2,7 @@
 # encoding: utf-8
 
 import sys
-import os
-import fnmatch
-import glob
-sys.path.insert(0, sys.path[0] + '/src/limbo/waf_tools')
-sys.path.insert(0, sys.path[1] + '/waf_tools')
+sys.path.insert(0, sys.path[0] + '/waf_tools')
 
 VERSION = '0.0.1'
 APPNAME = 'aegean'
@@ -14,10 +10,16 @@ APPNAME = 'aegean'
 srcdir = '.'
 blddir = 'build'
 
-from waflib.Build import BuildContext
+import os
+import fnmatch
+import glob
+import inspect
+import aegean
+
 from waflib import Logs
+from waflib.Errors import WafError
+from waflib.Build import BuildContext
 from waflib.Tools import waf_unit_test
-import eigen
 
 
 def options(opt):
@@ -26,10 +28,32 @@ def options(opt):
     opt.load('boost')
     opt.load('eigen')
     opt.load('libcmaes')
-    opt.load('simu')
 
-    opt.add_option('--tests', action='store_true',
-                   help='compile tests or not', dest='tests')
+    opt.add_option('--create', type='string',
+                   help='create a new exp', dest='create_exp')
+    opt.add_option('--exp', type='string',
+                   help='exp(s) to build, separate by comma', dest='exp')
+    opt.add_option('--examples', action='store_true', default=False,
+                   help='build examples', dest='examples')
+    opt.add_option('--cpp14', action='store_true', default=False,
+                   help='force c++-14 compilation [--cpp14]', dest='cpp14')
+    opt.add_option('--no-native', action='store_true', default=False,
+                   help='disable -march=native, which can cause some troubles [--no-native]', dest='no_native')
+
+    try:
+        os.mkdir(blddir)
+    except:
+        print("build dir not created (it probably already exists, this is fine)")
+    opt.logger = Logs.make_logger(blddir + '/options.log', 'optlogger')
+
+    for i in glob.glob('exp/*'):
+        if os.path.isdir(i):
+            opt.start_msg('command-line options for [%s]' % i)
+            try:
+                opt.recurse(i)
+                opt.end_msg(' -> OK')
+            except WafError:
+                opt.end_msg(' -> no options found')
 
 
 def configure(conf):
@@ -39,173 +63,62 @@ def configure(conf):
     conf.load('boost')
     conf.load('eigen')
     conf.load('libcmaes')
-    conf.load('simu')
 
     conf.check(lib='pthread')
     conf.check_boost(
         lib='regex system filesystem unit_test_framework', min_version='1.46')
     conf.check_eigen(required=True)
     conf.check_libcmaes()
-    conf.check_simu()
 
+    native_flags = "-march=native"
+
+    is_cpp14 = conf.options.cpp14
+    if is_cpp14:
+        is_cpp14 = conf.check_cxx(
+            cxxflags="-std=c++14", mandatory=False, msg='Checking for C++14')
+        if not is_cpp14:
+            conf.msg('C++14 is requested, but your compiler does not support it!',
+                     'Disabling it!', color='RED')
     if conf.env.CXX_NAME in ["icc", "icpc"]:
         common_flags = "-Wall -std=c++11"
-        opt_flags = " -O3 -xHost -mtune=native -unroll -g"
-    elif conf.env.CXX_NAME in ["clang"]:
-        common_flags = "-Wall -std=c++11"
-        opt_flags = " -O3 -g -faligned-new"
+        opt_flags = " -O3 -xHost -g"
+        native_flags = "-mtune=native -unroll -fma"
     else:
-        if int(conf.env['CC_VERSION'][0]+conf.env['CC_VERSION'][1]) < 47:
+        if conf.env.CXX_NAME in ["gcc", "g++"] and int(conf.env['CC_VERSION'][0]+conf.env['CC_VERSION'][1]) < 47:
             common_flags = "-Wall -std=c++0x"
         else:
             common_flags = "-Wall -std=c++11"
-        opt_flags = " -O3 -g -faligned-new"
+        if conf.env.CXX_NAME in ["clang", "llvm"]:
+            common_flags += " -fdiagnostics-color"
+        opt_flags = " -O3 -g"
+
+    if is_cpp14:
+        common_flags = common_flags + " -std=c++14"
+
+    conf.env.INCLUDES_AEGEAN = os.path.dirname(os.path.abspath(
+        inspect.getfile(inspect.currentframe()))) + "/src"
+    conf.env.LIBRARIES = 'BOOST EIGEN LIBCMAES'
 
     all_flags = common_flags + opt_flags
     conf.env['CXXFLAGS'] = conf.env['CXXFLAGS'] + all_flags.split(' ')
     conf.env.append_value("LINKFLAGS", ["-pthread"])
-    print(conf.env['CXXFLAGS'])
+    Logs.pprint('NORMAL', 'CXXFLAGS: %s' %
+                (conf.env['CXXFLAGS'] + conf.env['CXXFLAGS_OMP']))
 
-
-def summary(bld):
-    lst = getattr(bld, 'utest_results', [])
-    total = 0
-    tfail = 0
-    if lst:
-        total = len(lst)
-        tfail = len([x for x in lst if x[1]])
-    waf_unit_test.summary(bld)
-    if tfail > 0:
-        bld.fatal("Build failed, because some tests failed!")
+    if conf.options.exp:
+        for i in conf.options.exp.split(','):
+            Logs.pprint('NORMAL', 'configuring for exp: %s' % i)
+            conf.recurse('exp/' + i)
 
 
 def build(bld):
-    if len(bld.env.INCLUDES_EIGEN) == 0 or len(bld.env.INCLUDES_BOOST) == 0:
-        bld.fatal('Some libraries were not found! Cannot proceed!')
+    bld.recurse('src/')
+    if bld.options.exp:
+        for i in bld.options.exp.split(','):
+            Logs.pprint('NORMAL', 'Building exp: %s' % i)
+            bld.recurse('exp/' + i)
 
-    if bld.options.tests:
-        bld.recurse('src/tests')
 
-    libs = 'BOOST EIGEN'
-
-    # examples
-    bld.program(features='cxx',
-                install_path=None,
-                source='examples/kmeans_example.cpp',
-                includes='./src ./src/limbo/src',
-                uselib=libs,
-                target='kmeans_example')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='examples/persistence_example.cpp',
-                includes='./src ./src/limbo/src',
-                uselib=libs,
-                target='persistence_example')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='examples/histogram_example.cpp',
-                includes='./src ./src/limbo/src',
-                uselib=libs,
-                target='histogram_example')
-
-    # exps
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/preprocess_trajectories.cpp',
-                includes='./src ./src/limbo/src',
-                uselib=libs,
-                target='preprocess_trajectories')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/zebra_etho_gen.cpp',
-                includes='./src ./src/limbo/src',
-                uselib=libs,
-                target='zebra_etho_gen')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/nn_simple.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs,
-                target='nn_simple')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/zebra_nn_train.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs,
-                target='zebra_nn_train')
-
-    bld.program(features='cxx',
-                install_path=None,
-                defines=['SMOOTH_LOSS'],
-                source='exp/zebra/zebra_nn_train.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs,
-                target='zebra_nn_train_smooth')
-
-    bld.program(features='cxx',
-                install_path=None,
-                defines=['USE_ORIGINAL_LABELS'],
-                source='exp/zebra/zebra_mixed_sim.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs,
-                target='zebra_mixed_sim_original_labels')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/zebra_mixed_sim.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs,
-                target='zebra_mixed_sim')
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/zebra_virtual_sim.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib=libs,
-                target='zebra_virtual_sim')
-
-    srcs = []
-    incs = ['exp/zebra/sim/', 'src/nn/src', 'src/limbo/src', 'src/']
-    nodes = bld.path.ant_glob('exp/zebra/sim/*.cpp', src=True, dir=False)
-    for n in nodes:
-        srcs += [n.bldpath()]
-
-    bld.shlib(features='cxx cxxshlib',
-              source=srcs,
-              includes=incs,
-              cxxflags=['-O3', '-fPIC', '-rdynamic'],
-              uselib='SIMU EIGEN BOOST',
-              target='aegean_simu')
-    bld.env.LIBPATH_AEGEAN_SIMU = [os.getcwd() + '/build']
-    bld.env.SHLIB_AEGEAN_SIMU = ['aegean_simu']
-    bld.env.LIB_AEGEAN_SIMU = ['aegean_simu']
-
-    bld.program(features='cxx',
-                install_path=None,
-                source='exp/zebra/zebra_sim.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src ./src/simu/src',
-                use='SIMU AEGEAN_SIMU ' + libs,
-                target='zebra_sim')
-
-    bld.program(features='cxx',
-                install_path=None,
-                defines=['WITH_CMAES_SIM'],
-                source='exp/zebra/zebra_sim.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src ./src/simu/src',
-                use='SIMU AEGEAN_SIMU ' + libs,
-                target='zebra_sim_cmaes')
-
-    bld.program(features='cxx',
-                install_path=None,
-                defines=['USE_LIBCMAES'],
-                source='exp/zebra/zebra_cmaes_nn_train.cpp',
-                includes='./src ./src/nn/src ./src/limbo/src',
-                uselib='SIMU AEGEAN_SIMU LIBCMAES ' + libs,
-                target='zebra_cmaes_nn_train')
-
-    bld.add_post_fun(summary)
+def shutdown(ctx):
+    if ctx.options.create_exp:
+        aegean.create_exp(ctx.options.create_exp, ctx.options)

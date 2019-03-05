@@ -4,7 +4,7 @@
 #include <cmath>
 #include <features/feature_base.hpp>
 #include <tools/mathtools.hpp>
-#include <limbo/tools/random_generator.hpp>
+#include <tools/random_generator.hpp>
 
 namespace aegean {
     namespace features {
@@ -15,7 +15,6 @@ namespace aegean {
 
             void operator()(const Eigen::MatrixXd& matrix, const float timestep) override
             {
-                const uint duration = matrix.rows();
                 Eigen::VectorXd noise = limbo::tools::random_vector_bounded(matrix.cols()) * 0.01;
                 Eigen::MatrixXd rolled = tools::rollMatrix(matrix, 1);
                 for (uint i = 0; i < rolled.cols(); ++i)

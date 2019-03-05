@@ -1,7 +1,7 @@
 #ifndef AEGEAN_CLUSTERING_OPT_GAP_STATISTIC_HPP
 #define AEGEAN_CLUSTERING_OPT_GAP_STATISTIC_HPP
 
-#include <limbo/tools/random_generator.hpp>
+#include <tools/random_generator.hpp>
 
 #include <Eigen/Core>
 #include <vector>

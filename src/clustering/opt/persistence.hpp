@@ -1,7 +1,7 @@
 #ifndef AEGEAN_CLUSTERING_OPT_PERSISTENCE_HPP
 #define AEGEAN_CLUSTERING_OPT_PERSISTENCE_HPP
 
-#include <limbo/tools/random_generator.hpp>
+#include <tools/random_generator.hpp>
 
 #include <Eigen/Dense>
 #include <cassert>

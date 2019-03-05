@@ -34,10 +34,11 @@ int main(int argc, char** argv)
 
     uint num_behaviours;
     {
-        std::ifstream ifs;
-        ifs.open(path + "/num_behaviours.dat");
-        ifs >> num_behaviours;
-        ifs.close();
+        // std::ifstream ifs;
+        // ifs.open(path + "/num_behaviours.dat");
+        // ifs >> num_behaviours;
+        // ifs.close();
+        num_behaviours = 1;
     }
 
     uint num_centroids;
@@ -102,8 +103,8 @@ int main(int argc, char** argv)
     Eigen::MatrixXd positions, velocities, cluster_centers;
     archive.load(positions, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_positions.dat");
     archive.load(velocities, path + "/seg_" + std::to_string(exp_num) + "_reconstructed_velocities.dat");
-    archive.load(cluster_centers, path + "/centroids_kmeans.dat");
-    aegean::clustering::KMeans<> km(cluster_centers);
+    // archive.load(cluster_centers, path + "/centroids_kmeans.dat");
+    aegean::clustering::KMeans<> km;
 
     std::shared_ptr<Eigen::MatrixXd> generated_positions = std::make_shared<Eigen::MatrixXd>();
     std::shared_ptr<Eigen::MatrixXd> generated_velocities = std::make_shared<Eigen::MatrixXd>();

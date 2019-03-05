@@ -4,11 +4,15 @@
 #include <iostream>
 
 namespace nn_strucutre {
+    static constexpr uint DIMS_IN = 24;
+    static constexpr uint DIMS_OUT = 2;
+
     void init_nn(simple_nn::NeuralNet& net, uint num_individuals)
     {
-        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(10, 20);
-        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 20);
-        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(20, 2); // dr cosdphi sindphi
+        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(DIMS_IN, 30);
+        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(30, 30);
+        // net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(30, 30);
+        net.add_layer<simple_nn::FullyConnectedLayer<simple_nn::Tanh>>(30, DIMS_OUT);
     }
 
     void init_nn(std::vector<std::shared_ptr<simple_nn::NeuralNet>>& net, uint num_behaviours, uint num_individuals)

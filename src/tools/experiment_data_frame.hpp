@@ -125,6 +125,10 @@ namespace aegean {
                     Eigen::MatrixXd bl = _velocities.block(_skip_rows, 0, _velocities.rows() - _skip_rows, _velocities.cols());
                     _velocities = bl;
                 }
+                {
+                    Eigen::MatrixXd bl = _accelerations.block(_skip_rows, 0, _accelerations.rows() - _skip_rows, _accelerations.cols());
+                    _accelerations = bl;
+                }
             }
 
             const Eigen::MatrixXd& positions() const { return _positions; }

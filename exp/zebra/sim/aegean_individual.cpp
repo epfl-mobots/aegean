@@ -60,66 +60,60 @@ namespace simu {
                 for (const IndividualPtr ind : asim->individuals()) {
                     if (_id == ind->id())
                         continue;
-                    reduced_pos(idx) = ind->position().x;
-                    reduced_pos(idx + 1) = ind->position().y;
-                    reduced_vel(idx) = ind->speed().vx;
-                    reduced_vel(idx + 1) = ind->speed().vy;
-                    idx += 2;
+                    reduced_pos(idx * 2) = ind->position().x;
+                    reduced_pos(idx * 2 + 1) = ind->position().y;
+                    reduced_vel(idx * 2) = ind->speed().vx;
+                    reduced_vel(idx * 2 + 1) = ind->speed().vy;
+                    ++idx;
                 }
 
                 Eigen::VectorXd nrow(inputs);
                 nrow <<
                     // net input
-                    reduced_pos
-                    // _position.x,
-                    // _position.y
+                    reduced_pos,
+                    reduced_vel,
+                    _position.x,
+                    _position.y,
+                    _speed.vx,
+                    _speed.vy
                     // net input
                     ;
 
-                uint label;
-                if (asim->has_labels()) {
-                    label = asim->labels()(static_cast<int>(asim->iteration()
-                        / asim->aegean_sim_settings().aggregate_window));
-                }
-                else {
-                    label = 0;
-                    // Eigen::MatrixXd features(1, 2);
-                    // features << iid.get()(1), align.get()(1);
-                    // auto km = asim->kmeans();
-                    // label = km->predict(features)(0);
-                    // (*asim->predictions())(asim->iteration(), _id) = label;
-                }
+                Eigen::VectorXd prediction = nets[0]->forward(nrow);
 
-                Eigen::VectorXd prediction = nets[label]->forward(nrow);
+                _desired_speed.vx = prediction(0);
+                _desired_speed.vy = prediction(1);
+                _desired_position.x = _position.x + _desired_speed.vx * dt;
+                _desired_position.y = _position.y + _desired_speed.vy * dt;
 
-                _desired_position.x = prediction(0);
-                _desired_position.y = prediction(1);
+                static thread_local limbo::tools::rgen_double_t rgen(-0.10, 0.10);
 
                 polygons::Point p(_desired_position.x, _desired_position.y);
                 bool valid = cc.in_polygon(p);
                 if (!valid) {
                     // if the generated positions was outside of the setup
                     // then we maintain the individual's position with a bit of noise
-                    // for (uint i = 0; i < 1000; ++i) {
-                    //     p.x() = _position.x /*+ rgen.rand()*/;
-                    //     p.y() = _position.y /*+ rgen.rand()*/;
-                    //     valid = cc.in_polygon(p);
-                    //     if (valid)
-                    //         break;
-                    // }
-                    // if (!valid) {
-                    _invalid_prediction = true;
-                    _desired_position = _position;
-                    _desired_speed = _speed;
-                    // }
-                    // else
-                    // {
-                    // _desired_position.x = p.x();
-                    // _desired_position.y = p.y();
-                    // }
+                    for (uint i = 0; i < 1000; ++i) {
+                        _desired_speed.vx = rgen.rand();
+                        _desired_speed.vy = rgen.rand();
+                        p.x() = _position.x + _desired_speed.vx * dt;
+                        p.y() = _position.y + _desired_speed.vy * dt;
+                        valid = cc.in_polygon(p);
+                        if (valid)
+                            break;
+                    }
+                    if (!valid) {
+                        _invalid_prediction = true;
+                        _desired_position = _position;
+                        _desired_speed = _speed;
+                    }
+                    else {
+                        _desired_position.x = p.x();
+                        _desired_position.y = p.y();
+                    }
                 }
             }
-        }
+        } // namespace simulation
 
         void AegeanIndividual::move(const std::shared_ptr<Simulation> sim)
         {

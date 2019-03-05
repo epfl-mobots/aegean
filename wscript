@@ -127,6 +127,13 @@ def build(bld):
 
     bld.program(features='cxx',
                 install_path=None,
+                source='exp/zebra/nn_simple.cpp',
+                includes='./src ./src/nn/src ./src/limbo/src',
+                uselib=libs,
+                target='nn_simple')
+
+    bld.program(features='cxx',
+                install_path=None,
                 source='exp/zebra/zebra_nn_train.cpp',
                 includes='./src ./src/nn/src ./src/limbo/src',
                 uselib=libs,

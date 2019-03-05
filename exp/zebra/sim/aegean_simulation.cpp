@@ -39,7 +39,7 @@ namespace simu {
                 idcs.push_back(i);
             std::random_device rd;
             std::mt19937 g(rd());
-            // std::shuffle(idcs.begin(), idcs.end(), g);
+            std::shuffle(idcs.begin(), idcs.end(), g);
 
             // update the current positions acccording to
             // the most recent prediction
@@ -71,7 +71,7 @@ namespace simu {
             _aegean_sim_settings.num_agents = static_cast<int>(_positions->cols() / 2);
             _aegean_sim_settings.num_robot = _robot_idcs.size();
             _aegean_sim_settings.num_fish = _aegean_sim_settings.num_agents - _robot_idcs.size();
-            assert(_aegean_sim_settings.num_fish > 0);
+            assert(_aegean_sim_settings.num_fish >= 0);
             assert(_aegean_sim_settings.num_agents == _aegean_sim_settings.num_robot + _aegean_sim_settings.num_fish);
             if (_robot_idcs.size()) {
                 assert(_aegean_sim_settings.num_agents >= *std::max_element(std::begin(_robot_idcs), std::end(_robot_idcs)));

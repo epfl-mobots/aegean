@@ -62,6 +62,9 @@ if __name__ == '__main__':
     parser.add_argument('--fish-like', action='store_true',
                         help='Images instead of points',
                         default=False)
+    parser.add_argument('--turing', action='store_true',
+                        help='Same image for all individuals to perform a turing test',
+                        default=False)
     parser.add_argument('--info', action='store_true',
                         help='Display info',
                         default=False)
@@ -141,7 +144,7 @@ if __name__ == '__main__':
             else:
                 phi = np.arctan2(vel[i,  j*2+1], vel[i,  j*2]) * 180 / np.pi
 
-                if args.excluded_idx >= 0 and args.excluded_idx == j:
+                if args.excluded_idx >= 0 and args.excluded_idx == j and not args.turing:
                     rotated_img = excluded_image.rotate(phi)
                 else:
                     rotated_img = image.rotate(phi)
@@ -174,26 +177,29 @@ if __name__ == '__main__':
             else:
                 phi = np.arctan2(vvel[i,  args.excluded_idx*2+1],
                                  vvel[i,  args.excluded_idx*2]) * 180 / np.pi
-                rotated_img = rimage.rotate(phi)
+                if not args.turing:
+                    rotated_img = rimage.rotate(phi)
+                else:
+                    rotated_img = image.rotate(phi)
                 ax.imshow(
                     rotated_img, extent=[x-0.0175, x+0.0175, y -
                                          0.0175, y+0.0175], aspect='equal')
 
-            xx = rtraj[i, args.excluded_idx*2]
-            yy = rtraj[i, args.excluded_idx*2 + 1]
+            # xx = rtraj[i, args.excluded_idx*2]
+            # yy = rtraj[i, args.excluded_idx*2 + 1]
 
-            if not args.fish_like:
-                plt.scatter(xx, yy, marker='*',
-                            label='Virtual agent')
-                Q = plt.quiver(
-                    xx, yy, rvel[i,  args.excluded_idx*2], rvel[i,  args.excluded_idx*2 + 1], scale=1, units='xy')
-            else:
-                phi = np.arctan2(rvel[i,  args.excluded_idx*2+1],
-                                 rvel[i,  args.excluded_idx*2]) * 180 / np.pi
-                rotated_img = excluded_image_t_1.rotate(phi)
-                ax.imshow(
-                    rotated_img, extent=[xx-0.0175, xx+0.0175, yy -
-                                         0.0175, yy+0.0175], aspect='equal')
+            # if not args.fish_like:
+            #     plt.scatter(xx, yy, marker='*',
+            #                 label='Virtual agent')
+            #     Q = plt.quiver(
+            #         xx, yy, rvel[i,  args.excluded_idx*2], rvel[i,  args.excluded_idx*2 + 1], scale=1, units='xy')
+            # else:
+            #     phi = np.arctan2(rvel[i,  args.excluded_idx*2+1],
+            #                      rvel[i,  args.excluded_idx*2]) * 180 / np.pi
+            #     rotated_img = excluded_image_t_1.rotate(phi)
+            #     ax.imshow(
+            #         rotated_img, extent=[xx-0.0175, xx+0.0175, yy -
+            #                              0.0175, yy+0.0175], aspect='equal')
 
         ax.axis('off')
 

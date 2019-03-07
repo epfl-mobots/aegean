@@ -204,6 +204,8 @@ namespace aegean {
             {
                 archive.save(_centroids, "centroids_kmeans");
                 archive.save(_labels, "labels_kmeans");
+                for (uint i = 0; i < _clusters.size(); ++i)
+                    archive.save(_clusters[i], "cluster_" + std::to_string(i) + "_data");
             }
 
             const Eigen::MatrixXd& centroids() const { return _centroids; }

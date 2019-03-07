@@ -10,10 +10,28 @@ def build(bld):
                       target='kmeans_example')
 
     obj = bld.program(features='cxx',
+                      source='clusterdv_example.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='clusterdv_example')
+
+    obj = bld.program(features='cxx',
+                      source='clusterdp_example.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='clusterdp_example')
+
+    obj = bld.program(features='cxx',
                       source='persistence_example.cpp',
                       includes='. .. ../../',
                       uselib=bld.env.LIBRARIES,
                       target='persistence_example')
+
+    obj = bld.program(features='cxx',
+                      source='gap_statistic_example.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='gap_statistic_example')
 
     obj = bld.program(features='cxx',
                       source='histogram_example.cpp',

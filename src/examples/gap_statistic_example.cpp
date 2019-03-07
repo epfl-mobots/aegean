@@ -1,4 +1,5 @@
 #include <clustering/kmeans.hpp>
+#include <clustering/opt/gap_statistic.hpp>
 #include <tools/archive.hpp>
 
 #include <Eigen/Core>
@@ -7,6 +8,7 @@
 
 using namespace aegean;
 using namespace clustering;
+using namespace opt;
 using namespace tools;
 
 int main()
@@ -29,8 +31,12 @@ int main()
     
     */
 
+    GapStatistic<KMeans<defaults::KMeansPlusPlus>, 2, 10> gs;
+    uint optimal_k = gs.opt_k(data);
+    std::cout << "Optimal k: " << optimal_k << std::endl;
+
     KMeans<defaults::KMeansPlusPlus> km;
-    std::vector<Eigen::MatrixXd> clusters = km.fit(data, 8);
+    std::vector<Eigen::MatrixXd> clusters = km.fit(data, optimal_k);
     std::cout << km.centroids() << std::endl;
     km.save(archive);
 

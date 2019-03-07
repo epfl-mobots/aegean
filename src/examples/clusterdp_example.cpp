@@ -13,7 +13,7 @@ using namespace tools;
 struct Params {
     struct Clusterdp : public defaults::Clusterdp {
         static constexpr double dc = -1;
-        static constexpr double p = .007;
+        static constexpr double p = .02;
     };
 };
 
@@ -37,7 +37,10 @@ int main()
     
     */
 
-    Clusterdp<Params> cdp;
+    using density_t = defaults::Exp;
+    // using density_t = defaults::Chi;
+
+    Clusterdp<Params, densityfun<density_t>> cdp;
     cdp.fit(data, 8);
     std::cout << cdp.centroids() << std::endl;
     cdp.save(archive);

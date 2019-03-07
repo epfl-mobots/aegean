@@ -24,9 +24,16 @@ namespace aegean {
         };
 
         struct Chi {
-            int operator()(double distance) const
+            int operator()(double distance, double cutoff) const
             {
-                return (distance < 0) ? 1 : 0;
+                return (distance < cutoff) ? 1 : 0;
+            }
+        };
+
+        struct Exp {
+            int operator()(double distance, double cutoff) const
+            {
+                return std::exp(-std::pow(distance, 2) / std::pow(cutoff, 2));
             }
         };
 
@@ -175,7 +182,7 @@ namespace aegean {
                     for (uint j = 0; j < distances.cols(); ++j) {
                         if (i == j) // TODO: probably right but need to check
                             continue;
-                        densities(i) += _chi(distances(i, j) - _dc);
+                        densities(i) += _chi(distances(i, j), _dc);
                     }
                 }
                 return densities;

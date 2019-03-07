@@ -60,6 +60,10 @@
 
 namespace aegean {
     namespace defaults {
+        struct KMeans {
+            static constexpr int max_iter = 100;
+        };
+
         struct KMeansPlusPlus {
             /// Initialize the centroids with the KMeans++ methodology
             Eigen::MatrixXd operator()(const Eigen::MatrixXd& data, const int K) const
@@ -129,18 +133,18 @@ namespace aegean {
 
     namespace clustering {
 
-        template <typename InitFunc = defaults::KMeansPlusPlus>
+        template <typename Params, class InitFunc = defaults::KMeansPlusPlus>
         class KMeans {
         public:
             KMeans() {}
             KMeans(const Eigen::MatrixXd& centroids) { _centroids = centroids; }
 
-            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K, const int max_iter = 100)
+            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K)
             {
                 _centroids = InitFunc()(data, K);
                 Eigen::MatrixXd prev_centroids;
                 _labels = Eigen::VectorXi::Ones(data.rows()) * -1;
-                for (int n = 0; n < max_iter; ++n) {
+                for (int n = 0; n < Params::KMeans::max_iter; ++n) {
                     // assign points to cluster
                     _clusters.clear();
                     _clusters.resize(K);

@@ -9,6 +9,12 @@ using namespace aegean;
 using namespace clustering;
 using namespace tools;
 
+struct Params {
+    struct KMeans : public defaults::KMeans {
+        static constexpr int max_iter = 100;
+    };
+};
+
 int main()
 {
     Archive archive(false);
@@ -29,7 +35,7 @@ int main()
     
     */
 
-    KMeans<defaults::KMeansPlusPlus> km;
+    KMeans<Params, defaults::KMeansPlusPlus> km;
     std::vector<Eigen::MatrixXd> clusters = km.fit(data, 8);
     std::cout << km.centroids() << std::endl;
     km.save(archive);

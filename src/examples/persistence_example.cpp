@@ -11,6 +11,12 @@ using namespace clustering;
 using namespace opt;
 using namespace tools;
 
+struct Params {
+    struct KMeans : public defaults::KMeans {
+        static constexpr int max_iter = 100;
+    };
+};
+
 int main()
 {
     Archive archive(false);
@@ -31,11 +37,11 @@ int main()
     
     */
 
-    Persistence<KMeans<defaults::KMeansPlusPlus>, 2, 10> per;
+    Persistence<KMeans<Params, defaults::KMeansPlusPlus>, 2, 10> per;
     uint optimal_k = per.opt_k(data);
     std::cout << "Optimal k: " << optimal_k << std::endl;
 
-    KMeans<defaults::KMeansPlusPlus> km;
+    KMeans<Params, defaults::KMeansPlusPlus> km;
     std::vector<Eigen::MatrixXd> clusters = km.fit(data, optimal_k);
     std::cout << km.centroids() << std::endl;
     km.save(archive);

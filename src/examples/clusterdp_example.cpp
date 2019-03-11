@@ -34,7 +34,7 @@ int main()
         150007    350104
         538884    400947
         179955    380008
-    
+
     */
 
     using density_t = defaults::Exp;

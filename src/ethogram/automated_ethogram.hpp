@@ -33,7 +33,7 @@ namespace aegean {
 
             struct defaults {
                 using clustering_t = clustering::KMeans<aegean::defaults::KMeansPlusPlus>;
-                using clustering_opt_t = clustering::opt::NoOpt<5>;
+                using clustering_opt_t = clustering::opt::NoOpt<-1>;
             };
 
             using args = typename ae_signature::bind<A1, A2>::type;

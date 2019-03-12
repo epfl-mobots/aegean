@@ -41,7 +41,7 @@ int main()
     // using density_t = defaults::Chi;
 
     Clusterdp<Params, densityfun<density_t>> cdp;
-    cdp.fit(data, 8);
+    cdp.fit(data);
     std::cout << cdp.centroids() << std::endl;
     cdp.save(archive);
 

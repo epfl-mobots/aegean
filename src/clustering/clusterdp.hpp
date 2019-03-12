@@ -21,6 +21,7 @@ namespace aegean {
         struct Clusterdp {
             static constexpr double dc = -1;
             static constexpr double p = .02;
+            static constexpr double sigma = .05;
         };
 
         struct Chi {
@@ -72,8 +73,10 @@ namespace aegean {
         public:
             Clusterdp() {}
 
-            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K)
+            std::vector<Eigen::MatrixXd> fit(const Eigen::MatrixXd& data, const int K = -1)
             {
+                _K = K;
+
                 // point distances
                 _compute_distances(data);
 
@@ -106,24 +109,12 @@ namespace aegean {
                 // compute point minimum distances from denser points
                 Eigen::VectorXi nn_idcs = _compute_deltas();
 
-                // sort the corresponding density indices in descending order
-                std::vector<size_t> idx(_deltas.rows());
-                std::iota(idx.begin(), idx.end(), 0);
-                std::sort(idx.begin(), idx.end(), [&](const size_t lhs, const size_t rhs) {
-                    return _deltas(lhs) > _deltas(rhs);
-                });
-
-                // the centroids are the points with anomalously large delta
-                _labels = Eigen::VectorXi::Ones(_deltas.rows()) * -1;
-                _centroids = Eigen::MatrixXd::Zero(K, data.cols());
-                for (int i = 0; i < K; ++i) {
-                    _centroids.row(i) = data.row(idx[i]);
-                    _labels(idx[i]) = i;
-                }
+                // estimating or explicitly choosing the cluster centers
+                _compute_cluster_centers(data);
 
                 // clustering starts from the points with highest density and propagates
                 // to the nearest neighbours
-                idx.resize(_rhos.rows());
+                std::vector<size_t> idx(_rhos.rows());
                 std::iota(idx.begin(), idx.end(), 0);
                 std::sort(idx.begin(), idx.end(), [&](const size_t lhs, const size_t rhs) {
                     return _rhos(lhs) > _rhos(rhs);
@@ -157,7 +148,7 @@ namespace aegean {
 
                 // assign points to corresponding clusters or to halos
                 _clusters.clear();
-                _clusters.resize(K);
+                _clusters.resize(_K);
                 for (uint i = 0; i < data.rows(); ++i) {
                     if (_halo_flags(i)) {
                         _halos.conservativeResize(_halos.rows() + 1, data.cols());
@@ -257,6 +248,32 @@ namespace aegean {
                 return nn_idcs;
             }
 
+            void _compute_cluster_centers(const Eigen::MatrixXd& data)
+            {
+                if (_K < 0) {
+                    Eigen::VectorXd norm_delta = (_deltas.array() - _deltas.minCoeff()) / (_deltas.maxCoeff() - _deltas.minCoeff());
+                    Eigen::VectorXd norm_rho = (_rhos.array() - _rhos.minCoeff()) / (_rhos.maxCoeff() - _rhos.minCoeff());
+                    Eigen::VectorXd gammas = norm_delta.array() * norm_rho.array();
+                    double std = std::sqrt((gammas.array() - gammas.mean()).square().sum() / (gammas.size() - 1));
+                    _K = (gammas.array() > gammas.mean() + Params::Clusterdp::sigma * std).count();
+                }
+
+                // sort the corresponding density indices in descending order
+                std::vector<size_t> idx(_deltas.rows());
+                std::iota(idx.begin(), idx.end(), 0);
+                std::sort(idx.begin(), idx.end(), [&](const size_t lhs, const size_t rhs) {
+                    return _deltas(lhs) > _deltas(rhs);
+                });
+
+                // the centroids are the points with anomalously large delta
+                _labels = Eigen::VectorXi::Ones(_deltas.rows()) * -1;
+                _centroids = Eigen::MatrixXd::Zero(_K, data.cols());
+                for (int i = 0; i < _K; ++i) {
+                    _centroids.row(i) = data.row(idx[i]);
+                    _labels(idx[i]) = i;
+                }
+            }
+
             Eigen::MatrixXd _centroids;
             std::vector<Eigen::MatrixXd> _clusters;
             Eigen::MatrixXd _distances;
@@ -264,6 +281,7 @@ namespace aegean {
             Eigen::VectorXd _deltas;
             Eigen::VectorXi _labels;
             double _dc;
+            int _K;
 
             Eigen::MatrixXd _halos;
             Eigen::VectorXi _halo_flags;

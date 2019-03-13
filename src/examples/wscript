@@ -9,11 +9,11 @@ def build(bld):
                       uselib=bld.env.LIBRARIES,
                       target='kmeans_example')
 
-    obj = bld.program(features='cxx',
-                      source='clusterdv_example.cpp',
-                      includes='. .. ../../',
-                      uselib=bld.env.LIBRARIES,
-                      target='clusterdv_example')
+    # obj = bld.program(features='cxx',
+    #                   source='clusterdv_example.cpp',
+    #                   includes='. .. ../../',
+    #                   uselib=bld.env.LIBRARIES,
+    #                   target='clusterdv_example')
 
     obj = bld.program(features='cxx',
                       source='clusterdp_example.cpp',

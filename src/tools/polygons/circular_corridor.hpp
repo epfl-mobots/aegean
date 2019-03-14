@@ -77,18 +77,12 @@ namespace aegean {
 
                 double distance_to_inner_wall(const Point& p) const
                 {
-                    Eigen::Vector2d pt(2);
-                    pt(0) = p.x() - _center.x();
-                    pt(1) = p.y() - _center.y();
-                    return pt.norm() - _inner_r;
+                    return distance_to_center(p) - _inner_r;
                 }
 
                 double distance_to_outer_wall(const Point& p) const
                 {
-                    Eigen::Vector2d pt(2);
-                    pt(0) = p.x() - _center.x();
-                    pt(1) = p.y() - _center.y();
-                    return _outer_r - pt.norm();
+                    return _outer_r - distance_to_center(p);
                 }
 
                 double angle(const Point& p) const

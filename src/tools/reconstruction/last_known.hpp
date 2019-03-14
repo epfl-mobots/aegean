@@ -12,12 +12,15 @@ namespace aegean {
             struct LastKnown : public ReconstructionBase {
                 void operator()(Eigen::MatrixXd& matrix) override
                 {
+                    if (matrix.array().isNaN().count() == 0)
+                        return;
+
                     Eigen::MatrixXd filtered;
                     uint last_valid_idx = -1;
                     for (uint i = 0; i < matrix.rows(); ++i) {
                         uint idx = i;
                         Eigen::MatrixXd row = matrix.row(i);
-                        if (row.array().isNaN().count() > 0)
+                        if (row.array().isNaN().count() == 0)
                             last_valid_idx = i;
                         else if (last_valid_idx > 0)
                             idx = last_valid_idx;

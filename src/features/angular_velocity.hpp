@@ -29,7 +29,7 @@ namespace aegean {
                 _angular_velocity.unaryExpr([timestep](double val) {
                     double corrected_phi = val;
                     if (abs(val) > 180)
-                        corrected_phi = sgn(corrected_phi) * (360 - corrected_phi);
+                        corrected_phi = -sgn(corrected_phi) * (360 - std::abs(corrected_phi));
                     return corrected_phi / timestep;
                 }); // result in degrees
             }

@@ -213,6 +213,7 @@ namespace aegean {
             }
 
             const Eigen::MatrixXd& centroids() const { return _centroids; }
+            Eigen::MatrixXd& centroids() { return _centroids; }
             double inertia() const { return _inertia; }
             const Eigen::VectorXi& labels() const { return _labels; }
 

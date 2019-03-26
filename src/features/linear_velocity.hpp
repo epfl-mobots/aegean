@@ -31,7 +31,7 @@ namespace aegean {
                             std::pow(velocities(r, c * 2), 2)
                             + std::pow(velocities(r, c * 2 + 1), 2)
                             + 2 * velocities(r, c * 2) * velocities(r, c * 2)
-                                * std::sin(phi));
+                                * std::cos(phi));
                         _linear_velocity(r, c) = resultant;
                     }
                 }

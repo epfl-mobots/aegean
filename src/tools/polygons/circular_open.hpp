@@ -10,8 +10,8 @@ namespace aegean {
     namespace defaults {
         struct CircularOpen {
             static constexpr double radius = 0.29;
-            static constexpr double center_x = 0.570587;
-            static constexpr double center_y = 0.574004;
+            static constexpr double center_x = 0.501;
+            static constexpr double center_y = 0.508;
         };
     } // namespace defaults
 

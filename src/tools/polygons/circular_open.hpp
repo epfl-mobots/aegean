@@ -1,5 +1,5 @@
-#ifndef AEGEAN_TOOLS_POLYGONS_CIRCULAR_CORRIDOR_HPP
-#define AEGEAN_TOOLS_POLYGONS_CIRCULAR_CORRIDOR_HPP
+#ifndef AEGEAN_TOOLS_POLYGONS_CIRCULAR_OPEN_HPP
+#define AEGEAN_TOOLS_POLYGONS_CIRCULAR_OPEN_HPP
 
 #include "polygon_base.hpp"
 #include <Eigen/Core>
@@ -8,11 +8,10 @@
 
 namespace aegean {
     namespace defaults {
-        struct CircularCorridor {
-            static constexpr double inner_radius = 0.198;
-            static constexpr double outer_radius = 0.298;
-            static constexpr double center_x = 0.502824858757;
-            static constexpr double center_y = 0.500324858757;
+        struct CircularOpen {
+            static constexpr double radius = 0.29;
+            static constexpr double center_x = 0.501;
+            static constexpr double center_y = 0.508;
         };
     } // namespace defaults
 
@@ -22,13 +21,12 @@ namespace aegean {
             using namespace primitives;
 
             template <typename Params>
-            class CircularCorridor : public PolygonBase {
+            class CircularOpen : public PolygonBase {
             public:
-                CircularCorridor()
-                    : _inner_r(Params::CircularCorridor::inner_radius),
-                      _outer_r(Params::CircularCorridor::outer_radius),
-                      _center(Params::CircularCorridor::center_x,
-                          Params::CircularCorridor::center_y)
+                CircularOpen()
+                    : _r(Params::CircularOpen::radius),
+                      _center(Params::CircularOpen::center_x,
+                          Params::CircularOpen::center_y)
                 {
                 }
 
@@ -49,19 +47,12 @@ namespace aegean {
 
                 double min_distance(const Point& p) const override
                 {
-                    return std::min(distance_to_inner_wall(p), distance_to_outer_wall(p));
-                }
-
-                double max_distance(const Point& p) const override
-                {
-                    return std::max(distance_to_inner_wall(p), distance_to_outer_wall(p));
+                    return distance_to_wall(p);
                 }
 
                 bool in_polygon(const Point& p) const override
                 {
-                    if (distance_to_outer_wall(p) < 0)
-                        return false;
-                    else if (distance_to_inner_wall(p) < 0)
+                    if (distance_to_wall(p) < 0)
                         return false;
                     else
                         return true;
@@ -75,14 +66,9 @@ namespace aegean {
                     return pt.norm();
                 }
 
-                double distance_to_inner_wall(const Point& p) const
+                double distance_to_wall(const Point& p) const
                 {
-                    return distance_to_center(p) - _inner_r;
-                }
-
-                double distance_to_outer_wall(const Point& p) const
-                {
-                    return _outer_r - distance_to_center(p);
+                    return _r - distance_to_center(p);
                 }
 
                 double angle(const Point& p) const
@@ -94,24 +80,11 @@ namespace aegean {
                     return phi;
                 }
 
-                bool is_valid(const Point& p) const
-                {
-                    double corridor_len = _outer_r - _inner_r;
-                    if ((distance_to_inner_wall(p) <= corridor_len)
-                        && (distance_to_outer_wall(p) <= corridor_len)) {
-                        return true;
-                    }
-                    else
-                        return false;
-                }
-
-                double inner_radius() const { return _inner_r; }
-                double outer_radius() const { return _outer_r; }
+                double radius() const { return _r; }
                 Point center() const { return _center; }
 
             protected:
-                const double _inner_r;
-                const double _outer_r;
+                const double _r;
                 const Point _center;
             };
         } // namespace polygons

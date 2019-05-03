@@ -179,9 +179,6 @@ namespace aegean {
                     for (uint j = 0; j < centroidal_position.cols(); ++j) {
                         if (denom(j) > 0) {
                             centroidal_position(j) /= denom(j);
-
-                            if (denom(j) < 1)
-                                std::cout << denom(j) << std::endl;
                         }
                         else
                             centroidal_position(j) = std::nan("NaN");

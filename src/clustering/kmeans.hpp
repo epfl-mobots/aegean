@@ -107,7 +107,9 @@ namespace aegean {
                             break;
                         }
                     }
-                    assert(idx > 0);
+
+                    if (idx < 0)
+                        idx = cumprobs.rows() - 1;
 
                     // update centroids
                     centroids.conservativeResize(centroids.rows() + 1, centroids.cols());

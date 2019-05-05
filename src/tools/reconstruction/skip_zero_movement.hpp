@@ -9,7 +9,7 @@
 namespace aegean {
     namespace defaults {
         struct SkipZeroMovement {
-            static constexpr double eps = 0.0002;
+            static constexpr double eps = 0.0005;
         };
     } // namespace defaults
 

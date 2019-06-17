@@ -22,22 +22,31 @@ namespace aegean {
                 {
                     LastKnown::operator()(matrix);
 
-                    Eigen::MatrixXd filtered;
-                    Eigen::MatrixXd last_row = matrix.row(0);
-                    for (uint i = 1; i < matrix.rows(); ++i) {
-                        Eigen::MatrixXd dif = last_row.array() - matrix.row(i).array();
-                        double mse = dif.norm();
-                        last_row = matrix.row(i);
+                    int zero_movement;
+                    Eigen::MatrixXd reference = matrix;
+                    do {
+                        zero_movement = 0;
+                        Eigen::MatrixXd filtered;
+                        Eigen::MatrixXd last_row = reference.row(0);
+                        for (uint i = 1; i < reference.rows(); ++i) {
+                            Eigen::MatrixXd dif = last_row.array() - reference.row(i).array();
+                            double mse = dif.norm();
+                            last_row = reference.row(i);
 
-                        if (mse <= Params::SkipZeroMovement::eps)
-                            continue;
+                            if (mse <= Params::SkipZeroMovement::eps) {
+                                ++zero_movement;
+                                continue;
+                            }
 
-                        filtered.conservativeResize(filtered.rows() + 1, matrix.cols());
-                        filtered.row(filtered.rows() - 1) = matrix.row(i);
-                    }
+                            filtered.conservativeResize(filtered.rows() + 1, reference.cols());
+                            filtered.row(filtered.rows() - 1) = reference.row(i);
+                        }
 
-                    std::cout << "Lines skipped: " << matrix.rows() - filtered.rows() << " (out of " << matrix.rows() << ")" << std::endl;
-                    matrix = filtered;
+                        reference = filtered;
+                    } while (zero_movement > 0);
+
+                    std::cout << "Lines skipped: " << matrix.rows() - reference.rows() << " (out of " << matrix.rows() << ")" << std::endl;
+                    matrix = reference;
                 }
             };
 

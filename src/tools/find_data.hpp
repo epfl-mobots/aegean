@@ -43,6 +43,10 @@ namespace aegean {
 
             void collect()
             {
+                _traj.clear();
+                _vels.clear();
+                _uni_data.clear();
+
                 _t.timer_start();
 
                 for (auto const& [key, val] : _exps) {
@@ -141,6 +145,8 @@ namespace aegean {
                                 std::get<1>(_uni_data[key][viter->second]).push_back(std::move(_vels[key][skey].first));
                             }
                         }
+
+                        _unified_data = true;
                     }
                 }
 
@@ -156,6 +162,8 @@ namespace aegean {
 
             const ExpData& data() const { return _uni_data; }
             ExpData& data() { return _uni_data; }
+
+            bool is_data_unified() const { return _unified_data; }
 
         private:
             size_t _retrieve(const std::string& key)

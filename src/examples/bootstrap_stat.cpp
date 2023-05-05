@@ -54,5 +54,7 @@ int main(int argc, char** argv)
 
     fd.join_experiments(to_join);
 
+    auto data = fd.data();
+
     return 0;
 }

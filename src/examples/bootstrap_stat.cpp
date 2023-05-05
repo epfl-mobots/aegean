@@ -23,34 +23,34 @@ int main(int argc, char** argv)
         {"3_Robot", {"_processed_positions.dat", true, 0.1}}};
 
     // ::FindExps exps = {
-    //     {"3_Robot", {"_processed_positions.dat", true}}};
+    //     {"1_Experiment", {"_processed_positions.dat", false, 0.1}}};
 
     FindData fd(argv[1], exps);
     fd.collect();
 
     ::JointExps to_join = {
         {"1_Experiment",
-            {{"exp_2", "exp_1"},
-                {"exp_10", "exp_9"},
-                {"exp_13", "exp_12"},
-                {"exp_14", "exp_12"}}},
+            {{2, 1},
+                {10, 9},
+                {13, 12},
+                {14, 12}}},
 
         {"2_Simu", {}},
 
-        {"1_Experiment",
-            {{"exp_2", "exp_1"},
-                {"exp_3", "exp_1"},
-                {"exp_6", "exp_5"},
-                {"exp_8", "exp_7"},
-                {"exp_10", "exp_9"},
-                {"exp_12", "exp_11"},
-                {"exp_14", "exp_13"},
-                {"exp_16", "exp_15"},
-                {"exp_18", "exp_17"},
-                {"exp_20", "exp_19"},
-                {"exp_22", "exp_21"},
-                {"exp_24", "exp_23"},
-                {"exp_25", "exp_23"}}}};
+        {"3_Robot",
+            {{2, 1},
+                {3, 1},
+                {6, 5},
+                {8, 7},
+                {10, 9},
+                {12, 11},
+                {14, 13},
+                {16, 15},
+                {18, 17},
+                {20, 19},
+                {22, 21},
+                {24, 23},
+                {25, 23}}}};
 
     fd.join_experiments(to_join);
 

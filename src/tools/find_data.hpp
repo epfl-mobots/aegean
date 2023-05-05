@@ -24,7 +24,7 @@ namespace aegean {
         using FindExps = std::unordered_map<std::string, std::tuple<std::string, bool, float>>;
         using JointExps = std::unordered_map<
             std::string,
-            std::unordered_map<std::string, std::string>>;
+            std::unordered_map<int, int>>;
 
         using Trajectory = std::pair<Eigen::MatrixXd, int>;
         using TrajectoryWithPath = std::unordered_map<
@@ -33,13 +33,16 @@ namespace aegean {
         using TrajData = std::unordered_map<std::string, TrajectoryWithPath>;
         using VelData = TrajData;
 
+        using ExpData = std::unordered_map<std::string,
+            std::unordered_map<int, std::tuple<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>, int>>>;
+
         using Clock = std::chrono::high_resolution_clock;
         using TimePoint = std::chrono::time_point<Clock>;
 
         class FindData {
         public:
             FindData(const std::string& exp_root, const FindExps& exp_list)
-                : _exp_root{exp_root + '/'}, _exps{exp_list}, _arch{false}
+                : _exp_root{exp_root + '/'}, _exps{exp_list}, _arch{false}, _unified_data(false)
             {
             }
 
@@ -109,7 +112,40 @@ namespace aegean {
                                 return true;
                             });
 
-                        // TODO: update traj data maps
+                        for (const std::string& skey : sorted_keys) {
+                            std::string str_exp_num = _split(skey, '_')[1];
+                            std::vector<std::string> check_minor = _split(str_exp_num, '-');
+                            if (check_minor.size()) {
+                                str_exp_num = check_minor[0];
+                            }
+                            int exp_num = stoi(str_exp_num);
+
+                            auto viter = val.find(exp_num);
+                            if (viter == val.end()) {
+                                std::get<0>(_uni_data[key][exp_num]).push_back(std::move(_traj[key][skey].first));
+                                std::get<1>(_uni_data[key][exp_num]).push_back(std::move(_vels[key][skey].first));
+                                std::get<2>(_uni_data[key][exp_num]) = _traj[key][skey].second;
+                            }
+                            else {
+                                int ridx1 = _traj[key][skey].second;
+                                int ridx0 = std::get<2>(_uni_data[key][viter->second]);
+
+                                // there is a chance that the split experiments will have different robot indices (this is because
+                                // they are indeed analyzed by a different instance of the tracking software). Here, we swap the
+                                // columns to make sure that both experiments that are about to be joined have the same robot index
+                                if (ridx0 != ridx1) {
+                                    _traj[key][skey].first.col(ridx0 * 2).swap(_traj[key][skey].first.col(ridx1 * 2));
+                                    _traj[key][skey].first.col(ridx0 * 2 + 1).swap(_traj[key][skey].first.col(ridx1 * 2 + 1));
+                                    _vels[key][skey].first.col(ridx0 * 2).swap(_vels[key][skey].first.col(ridx1 * 2));
+                                    _vels[key][skey].first.col(ridx0 * 2 + 1).swap(_vels[key][skey].first.col(ridx1 * 2 + 1));
+                                    _traj[key][skey].second = ridx0;
+                                    _vels[key][skey].second = ridx0;
+                                }
+
+                                std::get<0>(_uni_data[key][viter->second]).push_back(std::move(_traj[key][skey].first));
+                                std::get<1>(_uni_data[key][viter->second]).push_back(std::move(_vels[key][skey].first));
+                            }
+                        }
                     }
                 }
 
@@ -135,8 +171,8 @@ namespace aegean {
 
                         // load up trajectory matrix
                         _arch.load(traj, full_path);
-                        // !! need to compute velocity here, before concat the distros
 
+                        // - compute velocities
                         float timestep = std::get<2>(_exps[key]);
                         Eigen::MatrixXd rolled = tools::rollMatrix(traj, 1);
                         Eigen::MatrixXd vel = (traj - rolled) / timestep;
@@ -194,9 +230,11 @@ namespace aegean {
             std::string _exp_root;
             FindExps _exps;
             Archive _arch;
+            bool _unified_data;
 
             TrajData _traj;
             VelData _vels;
+            ExpData _uni_data;
         };
     } // namespace tools
 } // namespace aegean

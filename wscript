@@ -35,8 +35,6 @@ def options(opt):
                    help='exp(s) to build, separate by comma', dest='exp')
     opt.add_option('--examples', action='store_true', default=False,
                    help='build examples', dest='examples')
-    opt.add_option('--cpp14', action='store_true', default=False,
-                   help='force c++-14 compilation [--cpp14]', dest='cpp14')
     opt.add_option('--no-native', action='store_true', default=False,
                    help='disable -march=native, which can cause some troubles [--no-native]', dest='no_native')
 
@@ -72,28 +70,28 @@ def configure(conf):
 
     native_flags = "-march=native"
 
-    is_cpp14 = conf.options.cpp14
-    if is_cpp14:
-        is_cpp14 = conf.check_cxx(
-            cxxflags="-std=c++14", mandatory=False, msg='Checking for C++14')
-        if not is_cpp14:
-            conf.msg('C++14 is requested, but your compiler does not support it!',
-                     'Disabling it!', color='RED')
+    is_cpp20 = conf.check_cxx(
+        cxxflags="-std=c++20", mandatory=False, msg='Checking for C++20')
+    if not is_cpp20:
+        conf.msg('C++20 is requested, but your compiler does not support it!',
+                    'Disabling it!', color='RED')
+
+
     if conf.env.CXX_NAME in ["icc", "icpc"]:
         common_flags = "-Wall -std=c++11"
         opt_flags = " -O3 -xHost -g"
         native_flags = "-mtune=native -unroll -fma"
     else:
         if conf.env.CXX_NAME in ["gcc", "g++"] and int(conf.env['CC_VERSION'][0]+conf.env['CC_VERSION'][1]) < 47:
-            common_flags = "-Wall -std=c++0x"
-        else:
             common_flags = "-Wall -std=c++11"
+        else:
+            common_flags = "-Wall -std=c++20"
         if conf.env.CXX_NAME in ["clang", "llvm"]:
             common_flags += " -fdiagnostics-color"
         opt_flags = " -O3 -g"
 
-    if is_cpp14:
-        common_flags = common_flags + " -std=c++14"
+    if is_cpp20:
+        common_flags = common_flags + " -std=c++20"
 
     conf.env.INCLUDES_AEGEAN = os.path.dirname(os.path.abspath(
         inspect.getfile(inspect.currentframe()))) + "/src"

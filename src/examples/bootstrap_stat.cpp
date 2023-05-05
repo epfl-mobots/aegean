@@ -19,8 +19,11 @@ int main(int argc, char** argv)
 
     ::FindExps exps = {
         {"1_Experiment", {"_processed_positions.dat", false}},
-        {"2_Simu", {"_processed_positions.dat", false}},
+        {"2_Simu", {"_generated_virtu_positions.dat", false}},
         {"3_Robot", {"_processed_positions.dat", true}}};
+
+    // ::FindExps exps = {
+    //     {"3_Robot", {"_processed_positions.dat", true}}};
 
     FindData fd(argv[1], exps);
     fd.collect();

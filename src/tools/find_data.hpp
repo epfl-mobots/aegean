@@ -1,12 +1,10 @@
 #ifndef AEGEAN_TOOLS_FIND_DATA_HPP
 #define AEGEAN_TOOLS_FIND_DATA_HPP
 
-// #include <Eigen/Core>
+#include <tools/archive.hpp>
 
-// #include <cassert>
-// #include <cmath>
-// #include <fstream>
-// #include <sstream>
+#include <Eigen/Core>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,6 +20,10 @@
 namespace aegean {
     namespace tools {
         using FindExps = std::unordered_map<std::string, std::pair<std::string, bool>>;
+        using JointExps = std::unordered_map<std::string, std::string>;
+        using TrajData = std::unordered_map<std::string,
+            std::unordered_map<
+                std::string, Eigen::MatrixXd>>;
         using Ridcs = std::unordered_map<
             std::string,
             std::unordered_map<
@@ -32,7 +34,7 @@ namespace aegean {
         class FindData {
         public:
             FindData(const std::string& exp_root, const FindExps& exp_list)
-                : _exp_root(exp_root + '/'), _exps(exp_list)
+                : _exp_root{exp_root + '/'}, _exps{exp_list}, _arch{false}
             {
             }
 
@@ -66,11 +68,21 @@ namespace aegean {
                     std::string exp_file = i->path().filename().string();
                     if (exp_file.ends_with(_exps[key].first)) {
                         match.push_back(exp_file);
+
+                        std::string full_path = path + "/" + exp_file;
+                        Eigen::MatrixXd traj;
+                        _arch.load(traj, full_path);
+                        _traj[key][exp_file] = traj;
+
                         if (_exps[key].second) {
                             std::string ridx_f = std::regex_replace(
                                 exp_file,
                                 std::regex(".dat"), "_ridx.dat");
-                            _ridcs[key][exp_file] = {ridx_f, -1};
+
+                            std::string full_path = path + "/" + ridx_f;
+                            Eigen::VectorXd vidx;
+                            _arch.load(vidx, full_path);
+                            _ridcs[key][exp_file] = {ridx_f, static_cast<int>(vidx(0))};
                         }
                     }
                 }
@@ -80,7 +92,11 @@ namespace aegean {
 
             std::string _exp_root;
             FindExps _exps;
+
+            TrajData _traj;
             Ridcs _ridcs;
+
+            Archive _arch;
         };
     } // namespace tools
 } // namespace aegean

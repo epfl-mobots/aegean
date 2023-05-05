@@ -3,6 +3,7 @@
 
 #include <tools/archive.hpp>
 #include <tools/mathtools.hpp>
+#include <tools/timers.hpp>
 
 #include <Eigen/Core>
 
@@ -15,9 +16,6 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-
-// for benchmarking
-#include <chrono>
 
 namespace aegean {
     namespace tools {
@@ -36,9 +34,6 @@ namespace aegean {
         using ExpData = std::unordered_map<std::string,
             std::unordered_map<int, std::tuple<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>, int>>>;
 
-        using Clock = std::chrono::high_resolution_clock;
-        using TimePoint = std::chrono::time_point<Clock>;
-
         class FindData {
         public:
             FindData(const std::string& exp_root, const FindExps& exp_list)
@@ -48,7 +43,7 @@ namespace aegean {
 
             void collect()
             {
-                _timer_start();
+                _t.timer_start();
 
                 for (auto const& [key, val] : _exps) {
                     std::cout << "Collecting data for " << key << ": ";
@@ -56,13 +51,13 @@ namespace aegean {
                     std::cout << "Done [" << num_files << " files]" << std::endl;
                 }
 
-                auto elapsed = _timer_stop();
+                auto elapsed = _t.timer_stop();
                 std::cout << "Data collected in " << elapsed << " ms" << std::endl;
             }
 
             void join_experiments(const JointExps& to_join)
             {
-                _timer_start();
+                _t.timer_start();
 
                 for (auto const& [key, val] : to_join) {
                     if (_traj.find(key) == _traj.end()) {
@@ -149,9 +144,18 @@ namespace aegean {
                     }
                 }
 
-                auto elapsed = _timer_stop();
+                auto elapsed = _t.timer_stop();
                 std::cout << "Data joined in " << elapsed << " ms" << std::endl;
             }
+
+            const TrajData& trajectories() const { return _traj; }
+            TrajData& trajectories() { return _traj; }
+
+            const VelData& velocities() const { return _vels; }
+            VelData& velocities() { return _vels; }
+
+            const ExpData& data() const { return _uni_data; }
+            ExpData& data() { return _uni_data; }
 
         private:
             size_t _retrieve(const std::string& key)
@@ -215,17 +219,7 @@ namespace aegean {
                 return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
             }
 
-            void _timer_start()
-            {
-                _t_start = Clock::now();
-            }
-
-            long long _timer_stop() const
-            {
-                return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - _t_start).count();
-            }
-
-            TimePoint _t_start;
+            Timers _t;
 
             std::string _exp_root;
             FindExps _exps;

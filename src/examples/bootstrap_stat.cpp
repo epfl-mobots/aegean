@@ -18,9 +18,9 @@ int main(int argc, char** argv)
     }
 
     ::FindExps exps = {
-        {"1_Experiment", {"_processed_positions.dat", false}},
-        {"2_Simu", {"_generated_virtu_positions.dat", false}},
-        {"3_Robot", {"_processed_positions.dat", true}}};
+        {"1_Experiment", {"_processed_positions.dat", false, 0.1}},
+        {"2_Simu", {"_generated_virtu_positions.dat", false, 0.12}},
+        {"3_Robot", {"_processed_positions.dat", true, 0.1}}};
 
     // ::FindExps exps = {
     //     {"3_Robot", {"_processed_positions.dat", true}}};
@@ -28,18 +28,31 @@ int main(int argc, char** argv)
     FindData fd(argv[1], exps);
     fd.collect();
 
-    // Eigen::MatrixXd data1 = Eigen::MatrixXd::Random(200, 10).array().abs();
-    // Eigen::MatrixXd data2 = Eigen::MatrixXd::Random(200, 10).array().abs();
+    ::JointExps to_join = {
+        {"1_Experiment",
+            {{"exp_2", "exp_1"},
+                {"exp_10", "exp_9"},
+                {"exp_13", "exp_12"},
+                {"exp_14", "exp_12"}}},
 
-    // // Histogram hb(.1);
-    // Histogram hb(std::make_pair(0., 1.), 0.1);
-    // Eigen::MatrixXd bins1 = hb(data1);
-    // Eigen::MatrixXd bins2 = hb(data2);
+        {"2_Simu", {}},
 
-    // HellingerDistance hd;
-    // std::cout << "Bins 1: " << bins1 << std::endl;
-    // std::cout << "Bins 2: " << bins2 << std::endl;
-    // std::cout << "Hellinger distance: " << hd(bins1 / bins1.sum(), bins2 / bins2.sum()) << std::endl;
+        {"1_Experiment",
+            {{"exp_2", "exp_1"},
+                {"exp_3", "exp_1"},
+                {"exp_6", "exp_5"},
+                {"exp_8", "exp_7"},
+                {"exp_10", "exp_9"},
+                {"exp_12", "exp_11"},
+                {"exp_14", "exp_13"},
+                {"exp_16", "exp_15"},
+                {"exp_18", "exp_17"},
+                {"exp_20", "exp_19"},
+                {"exp_22", "exp_21"},
+                {"exp_24", "exp_23"},
+                {"exp_25", "exp_23"}}}};
+
+    fd.join_experiments(to_join);
 
     return 0;
 }

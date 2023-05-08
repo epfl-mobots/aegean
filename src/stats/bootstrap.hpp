@@ -18,7 +18,7 @@ namespace aegean {
             using stat_t = std::shared_ptr<Stat<T, DataType, RetType>>;
 
         public:
-            Bootstrap(size_t num_exps, size_t M, size_t num_threads = 1)
+            Bootstrap(size_t num_exps, size_t M, int num_threads = 1)
                 : _num_exps(num_exps),
                   _M(M),
                   _num_threads(num_threads),
@@ -90,10 +90,15 @@ namespace aegean {
                 return _stats;
             }
 
+            void clear_stats()
+            {
+                _stats.clear();
+            }
+
         protected:
             size_t _num_exps;
             size_t _M;
-            size_t _num_threads;
+            int _num_threads;
             std::vector<stat_t> _stats;
 
             tools::Timers _t;

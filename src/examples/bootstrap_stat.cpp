@@ -14,44 +14,13 @@
 #include "circular_stats/velocity.hpp"
 #include "circular_stats/distance_to_wall.hpp"
 #include "circular_stats/angle_of_incidence.hpp"
+#include "circular_stats/interindividual_distance.hpp"
 #include "circular_stats/heading_difference.hpp"
 #include "circular_stats/viewing_angle.hpp"
 
 using namespace aegean;
 using namespace aegean::tools;
 using namespace aegean::stats;
-
-struct mytask {
-    mytask(size_t n)
-        : _n(n)
-    {
-    }
-    void operator()()
-    {
-        for (int i = 0; i < 1000000; ++i) {} // Deliberately run slow
-        std::cerr << "[" << _n << "]";
-    }
-    size_t _n;
-};
-
-struct executor {
-    executor(std::vector<mytask>& t)
-        : _tasks(t)
-    {
-    }
-    executor(executor& e, tbb::split)
-        : _tasks(e._tasks)
-    {
-    }
-
-    void operator()(const tbb::blocked_range<size_t>& r) const
-    {
-        for (size_t i = r.begin(); i != r.end(); ++i)
-            _tasks[i]();
-    }
-
-    std::vector<mytask>& _tasks;
-};
 
 int main(int argc, char** argv)
 {
@@ -107,7 +76,7 @@ int main(int argc, char** argv)
     // num bootstrap iters to run
     const size_t bootstrap_iters = 100;
 
-    const size_t num_threads = (argc > 2) ? std::atoi(argv[2]) : -1;
+    const int num_threads = (argc > 2) ? std::atoi(argv[2]) : -1;
     std::cout << "Using " << num_threads << " thread(s)" << std::endl;
 
     auto data = fd.data();
@@ -123,16 +92,18 @@ int main(int argc, char** argv)
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> rvel(new Velocity<ret_t>(data[TEST_SET], 0., 35., 0.5));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> dtw(new DistanceToWall<ret_t>(data[TEST_SET], 25, 0., 25., 0.5));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> thetaw(new AngleOfIncidence<ret_t>(data[TEST_SET], 0., 180., 1));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> idist(new InterindividualDistance<ret_t>(data[TEST_SET], 0, 50, 0.5));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> phi(new HeadingDifference<ret_t>(data[TEST_SET], 0., 180., 1));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> psi(new ViewingAngle<ret_t>(data[TEST_SET], -180., 180., 1));
 
         // add stats to bootstrap
         exp
             //
-            // .add_stat(rvel)
-            // .add_stat(dtw)
-            // .add_stat(thetaw)
-            // .add_stat(phi)
+            .add_stat(rvel)
+            .add_stat(dtw)
+            .add_stat(thetaw)
+            .add_stat(idist)
+            .add_stat(phi)
             .add_stat(psi)
             //
             ;

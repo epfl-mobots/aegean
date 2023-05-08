@@ -20,7 +20,7 @@ public:
           _hist_bin_size(hist_bin_size),
           _h({hist_lb, hist_ub}, hist_bin_size)
     {
-        this->_type = "distance_to_wall";
+        this->_type = "dw";
     }
 
     void operator()(const PartialExpData& data, std::shared_ptr<RetType> ret, std::vector<size_t> idcs, const size_t boot_iter) override

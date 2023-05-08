@@ -187,15 +187,6 @@ namespace aegean {
                         // load up trajectory matrix
                         _arch.load(traj, full_path);
 
-                        // - compute velocities
-                        float timestep = std::get<2>(_exps[key]);
-                        float radius = std::get<3>(_exps[key]);
-
-                        traj *= radius;
-                        Eigen::MatrixXd rolled = tools::rollMatrix(traj, 1);
-                        Eigen::MatrixXd vel = (traj - rolled) / timestep;
-                        vel.row(0) = vel.row(1); // duplicate the first speed to avoid big values (the first velocity can't be computed without t-1 step)
-
                         int ridx = -1;
                         if (std::get<1>(_exps[key])) {
                             std::string ridx_f = std::regex_replace(
@@ -207,7 +198,24 @@ namespace aegean {
 
                             // load idx file
                             ridx = static_cast<int>(vidx(0));
+
+                            // move all robot trajectories to be the first
+                            // two columns of the matrix
+                            if (ridx != 0) {
+                                traj.col(0).swap(traj.col(ridx * 2));
+                                traj.col(1).swap(traj.col(ridx * 2 + 1));
+                                ridx = 0;
+                            }
                         }
+
+                        // - compute velocities
+                        float timestep = std::get<2>(_exps[key]);
+                        float radius = std::get<3>(_exps[key]);
+
+                        traj *= radius;
+                        Eigen::MatrixXd rolled = tools::rollMatrix(traj, 1);
+                        Eigen::MatrixXd vel = (traj - rolled) / timestep;
+                        vel.row(0) = vel.row(1); // duplicate the first speed to avoid big values (the first velocity can't be computed without t-1 step)
 
                         _traj[key][exp_file] = {traj, ridx};
                         _vels[key][exp_file] = {vel, ridx};

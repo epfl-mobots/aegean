@@ -15,9 +15,9 @@
 #include "circular_stats/distance_to_wall.hpp"
 #include "circular_stats/angle_of_incidence.hpp"
 #include "circular_stats/heading_difference.hpp"
+#include "circular_stats/viewing_angle.hpp"
 
 using namespace aegean;
-// using namespace aegean::histogram;
 using namespace aegean::tools;
 using namespace aegean::stats;
 
@@ -124,6 +124,7 @@ int main(int argc, char** argv)
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> dtw(new DistanceToWall<ret_t>(data[TEST_SET], 25, 0., 25., 0.5));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> thetaw(new AngleOfIncidence<ret_t>(data[TEST_SET], 0., 180., 1));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> phi(new HeadingDifference<ret_t>(data[TEST_SET], 0., 180., 1));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> psi(new ViewingAngle<ret_t>(data[TEST_SET], -180., 180., 1));
 
         // add stats to bootstrap
         exp
@@ -131,7 +132,8 @@ int main(int argc, char** argv)
             // .add_stat(rvel)
             // .add_stat(dtw)
             // .add_stat(thetaw)
-            .add_stat(phi)
+            // .add_stat(phi)
+            .add_stat(psi)
             //
             ;
 
@@ -142,7 +144,7 @@ int main(int argc, char** argv)
         }
 
         // initialize return structure
-        const std::vector<std::string> collective = {"d", "phi", "psi"};
+        const std::vector<std::string> single_curve = {"d", "phi"};
 
         auto stats = exp.stats();
         ret_t ret;
@@ -150,19 +152,19 @@ int main(int argc, char** argv)
             ret[s->type()]["avg"] = {
                 {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
                 {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)},
+                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 365)},
                 {"msamples", Eigen::MatrixXd::Ones(bootstrap_iters, 1)}};
 
-            if (std::find(collective.begin(), collective.end(), s->type()) != collective.end()) {
+            if (std::find(single_curve.begin(), single_curve.end(), s->type()) == single_curve.end()) {
                 ret[s->type()]["ind0"] = {
                     {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
                     {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                    {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
+                    {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 365)}};
 
                 ret[s->type()]["ind1"] = {
                     {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
                     {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                    {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
+                    {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 365)}};
             }
         }
         std::shared_ptr ret_ptr = std::make_shared<ret_t>(ret);
@@ -170,8 +172,8 @@ int main(int argc, char** argv)
         // run bootstrap
         exp.run(data[TEST_SET], ret_ptr, idcs);
 
-        double t = (*ret_ptr)["phi"]["avg"]["means"].col(0).array().mean();
-        std::cout << t << std::endl;
+        // double t = (*ret_ptr)["psi"]["avg"]["means"].col(0).array().mean();
+        // std::cout << t << std::endl;
     }
 
     return 0;

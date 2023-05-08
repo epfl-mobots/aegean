@@ -58,9 +58,9 @@ int main(int argc, char** argv)
 
     ::FindExps exps = {
         // --
-        // {"1_Experiment", {"_processed_positions.dat", false, 0.1, 0.25}},
-        // {"2_Simu", {"_generated_virtu_positions.dat", false, 0.12, 0.25}},
-        {"3_Robot", {"_processed_positions.dat", true, 0.1, 0.25}}
+        // {"1_Experiment", {"_processed_positions.dat", false, 0.1, 25}},
+        // {"2_Simu", {"_generated_virtu_positions.dat", false, 0.12, 25}},
+        {"3_Robot", {"_processed_positions.dat", true, 0.1, 25}}
         // --
     };
 
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
             ret_rec_t>>;
 
     // num bootstrap iters to run
-    const size_t bootstrap_iters = 100;
+    const size_t bootstrap_iters = 10;
 
     auto data = fd.data();
 
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
         Bootstrap<Eigen::MatrixXd, PartialExpData, ret_t> exp{data[TEST_SET].size(), bootstrap_iters, 8};
 
         // initialize stats for bootstrap
-        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> rvel(new Velocity<ret_t>(data[TEST_SET]));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> rvel(new Velocity<ret_t>(data[TEST_SET], 0., 35., 0.5));
 
         // add stats to bootstrap
         exp.add_stat(rvel);
@@ -132,17 +132,18 @@ int main(int argc, char** argv)
             ret[s->type()]["avg"] = {
                 {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
                 {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"N", Eigen::MatrixXd::Zero(bootstrap_iters, 360)}};
+                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)},
+                {"msamples", Eigen::MatrixXd::Ones(bootstrap_iters, 1)}};
 
             ret[s->type()]["ind0"] = {
                 {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
                 {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"N", Eigen::MatrixXd::Zero(bootstrap_iters, 360)}};
+                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
 
             ret[s->type()]["ind1"] = {
                 {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
                 {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"N", Eigen::MatrixXd::Zero(bootstrap_iters, 360)}};
+                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
         }
         std::shared_ptr ret_ptr = std::make_shared<ret_t>(ret);
 

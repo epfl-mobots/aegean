@@ -11,7 +11,7 @@
 #include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/task_arena.h>
 
-#include "bootstrap_stats/velocity.hpp"
+#include "circular_stats/velocity.hpp"
 
 using namespace aegean;
 // using namespace aegean::histogram;

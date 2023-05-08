@@ -14,6 +14,7 @@
 #include "circular_stats/velocity.hpp"
 #include "circular_stats/distance_to_wall.hpp"
 #include "circular_stats/angle_of_incidence.hpp"
+#include "circular_stats/heading_difference.hpp"
 
 using namespace aegean;
 // using namespace aegean::histogram;
@@ -122,13 +123,15 @@ int main(int argc, char** argv)
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> rvel(new Velocity<ret_t>(data[TEST_SET], 0., 35., 0.5));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> dtw(new DistanceToWall<ret_t>(data[TEST_SET], 25, 0., 25., 0.5));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> thetaw(new AngleOfIncidence<ret_t>(data[TEST_SET], 0., 180., 1));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> phi(new HeadingDifference<ret_t>(data[TEST_SET], 0., 180., 1));
 
         // add stats to bootstrap
         exp
             //
             // .add_stat(rvel)
             // .add_stat(dtw)
-            .add_stat(thetaw)
+            // .add_stat(thetaw)
+            .add_stat(phi)
             //
             ;
 
@@ -139,6 +142,8 @@ int main(int argc, char** argv)
         }
 
         // initialize return structure
+        const std::vector<std::string> collective = {"d", "phi", "psi"};
+
         auto stats = exp.stats();
         ret_t ret;
         for (auto s : stats) {
@@ -148,22 +153,24 @@ int main(int argc, char** argv)
                 {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)},
                 {"msamples", Eigen::MatrixXd::Ones(bootstrap_iters, 1)}};
 
-            ret[s->type()]["ind0"] = {
-                {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
+            if (std::find(collective.begin(), collective.end(), s->type()) != collective.end()) {
+                ret[s->type()]["ind0"] = {
+                    {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
+                    {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
+                    {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
 
-            ret[s->type()]["ind1"] = {
-                {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
-                {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
+                ret[s->type()]["ind1"] = {
+                    {"means", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
+                    {"means2", Eigen::MatrixXd::Zero(bootstrap_iters, 1)},
+                    {"N", -1 * Eigen::MatrixXd::Ones(bootstrap_iters, 360)}};
+            }
         }
         std::shared_ptr ret_ptr = std::make_shared<ret_t>(ret);
 
         // run bootstrap
         exp.run(data[TEST_SET], ret_ptr, idcs);
 
-        double t = (*ret_ptr)["thetaw"]["avg"]["means"].col(0).array().mean();
+        double t = (*ret_ptr)["phi"]["avg"]["means"].col(0).array().mean();
         std::cout << t << std::endl;
     }
 

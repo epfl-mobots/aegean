@@ -102,7 +102,10 @@ int main(int argc, char** argv)
             ret_rec_t>>;
 
     // num bootstrap iters to run
-    const size_t bootstrap_iters = 10;
+    const size_t bootstrap_iters = 1000;
+
+    const size_t num_threads = (argc > 2) ? atoi(argv[2]) : 8;
+    std::cout << "Using " << num_threads << " thread(s)" << std::endl;
 
     auto data = fd.data();
 
@@ -111,7 +114,7 @@ int main(int argc, char** argv)
         const std::string TEST_SET = "3_Robot";
 
         // init bootstrap obj
-        Bootstrap<Eigen::MatrixXd, PartialExpData, ret_t> exp{data[TEST_SET].size(), bootstrap_iters, 8};
+        Bootstrap<Eigen::MatrixXd, PartialExpData, ret_t> exp{data[TEST_SET].size(), bootstrap_iters, num_threads};
 
         // initialize stats for bootstrap
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> rvel(new Velocity<ret_t>(data[TEST_SET], 0., 35., 0.5));

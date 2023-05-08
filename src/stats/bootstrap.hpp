@@ -18,7 +18,7 @@ namespace aegean {
                   _M(M),
                   _num_threads(num_threads),
                   _gen(_rd()),
-                  _rgen(0, num_exps) {}
+                  _rgen(0, num_exps - 1) {}
 
             void run(const DataType& data, std::shared_ptr<RetType> ret, const std::vector<size_t>& exp_idcs)
             {
@@ -44,7 +44,7 @@ namespace aegean {
 
             Bootstrap& add_stat(std::shared_ptr<Stat<T, DataType, RetType>> stat)
             {
-                _stats.push_back(std::move(stat));
+                _stats.push_back(stat);
                 return *this;
             }
 

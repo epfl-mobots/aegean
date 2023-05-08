@@ -19,7 +19,7 @@
 
 namespace aegean {
     namespace tools {
-        using FindExps = std::unordered_map<std::string, std::tuple<std::string, bool, float>>;
+        using FindExps = std::unordered_map<std::string, std::tuple<std::string, bool, float, float>>;
         using JointExps = std::unordered_map<
             std::string,
             std::unordered_map<int, int>>;
@@ -31,7 +31,7 @@ namespace aegean {
         using TrajData = std::unordered_map<std::string, TrajectoryWithPath>;
         using VelData = TrajData;
 
-        using PartialExpData = std::unordered_map<int,
+        using PartialExpData = std::unordered_map<size_t,
             std::tuple<std::vector<Eigen::MatrixXd>,
                 std::vector<Eigen::MatrixXd>,
                 int>>;
@@ -189,6 +189,9 @@ namespace aegean {
 
                         // - compute velocities
                         float timestep = std::get<2>(_exps[key]);
+                        float radius = std::get<3>(_exps[key]);
+
+                        traj *= radius;
                         Eigen::MatrixXd rolled = tools::rollMatrix(traj, 1);
                         Eigen::MatrixXd vel = (traj - rolled) / timestep;
                         vel.row(0) = vel.row(1); // duplicate the first speed to avoid big values (the first velocity can't be computed without t-1 step)

@@ -31,8 +31,11 @@ namespace aegean {
         using TrajData = std::unordered_map<std::string, TrajectoryWithPath>;
         using VelData = TrajData;
 
-        using ExpData = std::unordered_map<std::string,
-            std::unordered_map<int, std::tuple<std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd>, int>>>;
+        using PartialExpData = std::unordered_map<int,
+            std::tuple<std::vector<Eigen::MatrixXd>,
+                std::vector<Eigen::MatrixXd>,
+                int>>;
+        using ExpData = std::unordered_map<std::string, PartialExpData>;
 
         class FindData {
         public:
@@ -165,7 +168,7 @@ namespace aegean {
 
             bool is_data_unified() const { return _unified_data; }
 
-        private:
+        protected:
             size_t _retrieve(const std::string& key)
             {
                 const std::string path = _exp_root + key;

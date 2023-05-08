@@ -43,7 +43,7 @@ public:
         size_t start_row_idx = 0;
         for (size_t i : idcs) {
             std::vector<Eigen::MatrixXd> segments = std::get<1>(data.at(i));
-            for (Eigen::MatrixXd v : segments) {
+            for (const Eigen::MatrixXd& v : segments) {
                 vels.block(start_row_idx, 0, v.rows(), num_inds * 2) = v;
                 start_row_idx += v.rows();
             }

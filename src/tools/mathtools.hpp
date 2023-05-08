@@ -14,6 +14,24 @@ namespace aegean {
             return (T(0) < val) - (val < T(0));
         }
 
+        double angle_to_pipi(double angle)
+        {
+            while (true) {
+                if (angle < -M_PI) {
+                    angle += 2 * M_PI;
+                }
+
+                if (angle > M_PI) {
+                    angle -= 2 * M_PI;
+                }
+
+                if (std::abs(angle) <= M_PI) {
+                    break;
+                }
+            }
+            return angle;
+        }
+
         void removeRow(Eigen::MatrixXd& matrix, uint row_idx)
         {
             uint num_rows = matrix.rows() - 1;

@@ -30,7 +30,7 @@ public:
         size_t num_inds = 0;
         for (size_t i : idcs) {
             std::vector<Eigen::MatrixXd> segments = std::get<0>(data.at(i));
-            for (Eigen::MatrixXd p : segments) {
+            for (const Eigen::MatrixXd& p : segments) {
                 mat_size += p.rows();
                 num_inds = p.cols() / 2;
             }

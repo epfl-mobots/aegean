@@ -13,7 +13,7 @@ using namespace aegean::histogram;
 template <typename RetType>
 class Velocity : public Stat<Eigen::MatrixXd, PartialExpData, RetType> {
 public:
-    Velocity(const PartialExpData& data, double hist_lb, double hist_ub, double hist_bin_size)
+    Velocity(const PartialExpData& data, float hist_lb, float hist_ub, float hist_bin_size)
         : _hist_lb(hist_lb),
           _hist_ub(hist_ub),
           _hist_bin_size(hist_bin_size),
@@ -79,9 +79,9 @@ public:
     }
 
 protected:
-    double _hist_lb;
-    double _hist_ub;
-    double _hist_bin_size;
+    float _hist_lb;
+    float _hist_ub;
+    float _hist_bin_size;
 
     Histogram _h;
 };

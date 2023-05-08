@@ -12,6 +12,7 @@
 #include <oneapi/tbb/task_arena.h>
 
 #include "circular_stats/velocity.hpp"
+#include "circular_stats/distance_to_wall.hpp"
 
 using namespace aegean;
 // using namespace aegean::histogram;
@@ -102,9 +103,9 @@ int main(int argc, char** argv)
             ret_rec_t>>;
 
     // num bootstrap iters to run
-    const size_t bootstrap_iters = 1000;
+    const size_t bootstrap_iters = 100;
 
-    const size_t num_threads = (argc > 2) ? atoi(argv[2]) : 8;
+    const size_t num_threads = (argc > 2) ? std::atoi(argv[2]) : -1;
     std::cout << "Using " << num_threads << " thread(s)" << std::endl;
 
     auto data = fd.data();
@@ -118,9 +119,15 @@ int main(int argc, char** argv)
 
         // initialize stats for bootstrap
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> rvel(new Velocity<ret_t>(data[TEST_SET], 0., 35., 0.5));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> dtw(new DistanceToWall<ret_t>(data[TEST_SET], 25, 0., 25., 0.5));
 
         // add stats to bootstrap
-        exp.add_stat(rvel);
+        exp
+            //
+            // .add_stat(rvel)
+            .add_stat(dtw)
+            //
+            ;
 
         // get dict keys for bootstrap to iterate over them
         std::vector<size_t> idcs;
@@ -153,7 +160,7 @@ int main(int argc, char** argv)
         // run bootstrap
         exp.run(data[TEST_SET], ret_ptr, idcs);
 
-        double t = (*ret_ptr)["velocity"]["avg"]["means"].col(0).array().mean();
+        double t = (*ret_ptr)["distance_to_wall"]["avg"]["means"].col(0).array().mean();
         std::cout << t << std::endl;
     }
 

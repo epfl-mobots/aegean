@@ -142,8 +142,9 @@ int main(int argc, char** argv)
 
     auto data = fd.data();
 
-    Timers t;
+    Timers t(2);
     SerializeFindExps ser;
+    t.timer_start(1);
     for (auto [k, sdata] : data) {
         t.timer_start();
 
@@ -249,6 +250,9 @@ int main(int argc, char** argv)
         auto elapsed = t.timer_stop();
         std::cout << "[" << k << "] done in " << elapsed << " ms" << std::endl;
     } // for all exp cases
+
+    auto elapsed = t.timer_stop(1);
+    std::cout << "Analysis lasted " << elapsed << " ms" << std::endl;
 
     return 0;
 }

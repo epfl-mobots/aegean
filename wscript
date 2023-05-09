@@ -74,7 +74,7 @@ def configure(conf):
     native_flags = "-march=native"
 
     is_cpp20 = conf.check_cxx(
-        cxxflags="-std=c++20", mandatory=False, msg='Checking for C++20')
+        cxxflags="-std=c++2a", mandatory=False, msg='Checking for C++20')
     if not is_cpp20:
         conf.msg('C++20 is requested, but your compiler does not support it!',
                     'Disabling it!', color='RED')
@@ -88,13 +88,13 @@ def configure(conf):
         if conf.env.CXX_NAME in ["gcc", "g++"] and int(conf.env['CC_VERSION'][0]+conf.env['CC_VERSION'][1]) < 47:
             common_flags = "-Wall -std=c++11"
         else:
-            common_flags = "-Wall -std=c++20"
+            common_flags = "-Wall -std=c++2a"
         if conf.env.CXX_NAME in ["clang", "llvm"]:
             common_flags += " -fdiagnostics-color"
         opt_flags = " -O3 -g"
 
     if is_cpp20:
-        common_flags = common_flags + " -std=c++20"
+        common_flags = common_flags + " -std=c++2a"
 
     conf.env.INCLUDES_AEGEAN = os.path.dirname(os.path.abspath(
         inspect.getfile(inspect.currentframe()))) + "/src"

@@ -62,7 +62,7 @@ def options(opt):
 def check_tbb(self, *k, **kw):
     if self.options.tbb:
         includes_tbb = [self.options.tbb + '/include']
-        libpath_tbb = [self.options.tbb + '/lib']
+        libpath_tbb = [self.options.tbb + '/lib', self.options.tbb + '/lib64']
     else:
         includes_tbb = ['/usr/local/include', '/usr/include', '/opt/intel/tbb/include']
         libpath_tbb = ['/usr/local/lib/', '/usr/lib', '/opt/intel/tbb/lib', '/usr/lib/x86_64-linux-gnu/']

@@ -16,6 +16,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace aegean {
     namespace tools {
@@ -180,7 +181,8 @@ namespace aegean {
                     }
 
                     std::string exp_file = i->path().filename().string();
-                    if (exp_file.ends_with(std::get<0>(_exps[key]))) {
+                    // ! using boost for this to support c++2a compilers used at EPFL clusters at the moment
+                    if (boost::algorithm::ends_with(exp_file, std::get<0>(_exps[key]))) {
                         std::string full_path = path + "/" + exp_file;
                         Eigen::MatrixXd traj;
 

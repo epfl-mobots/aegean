@@ -18,6 +18,7 @@
 #include "circular_stats/heading_difference.hpp"
 #include "circular_stats/viewing_angle.hpp"
 #include "circular_stats/corx.hpp"
+#include "circular_stats/corv.hpp"
 
 using namespace aegean;
 using namespace aegean::tools;
@@ -98,6 +99,7 @@ int main(int argc, char** argv)
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> psi(new ViewingAngle<ret_t>(data[TEST_SET], -180., 180., 1));
 
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> corx(new Corx<ret_t>(data[TEST_SET], 1, 30, 0.1, 0, 30., 1));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> corv(new Corv<ret_t>(data[TEST_SET], 1, 30, 0.1, 0, 30., 1));
 
         // add stats to bootstrap
         exp
@@ -108,7 +110,8 @@ int main(int argc, char** argv)
             // .add_stat(idist)
             // .add_stat(phi)
             // .add_stat(psi)
-            .add_stat(corx)
+            // .add_stat(corx)
+            .add_stat(corv)
             //
             ;
 

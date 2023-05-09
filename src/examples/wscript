@@ -44,3 +44,9 @@ def build(bld):
                       includes='. .. ../../',
                       uselib=bld.env.LIBRARIES,
                       target='pca_example')
+
+    obj = bld.program(features='cxx',
+                      source='bootstrap_stat.cpp',
+                      includes='. .. ../../',
+                      uselib=bld.env.LIBRARIES,
+                      target='boostrap')

@@ -4,7 +4,7 @@
 import sys
 sys.path.insert(0, sys.path[0] + '/waf_tools')
 
-VERSION = '0.0.1'
+VERSION = '0.1.0'
 APPNAME = 'aegean'
 
 srcdir = '.'
@@ -28,6 +28,7 @@ def options(opt):
     opt.load('boost')
     opt.load('eigen')
     opt.load('libcmaes')
+    opt.load('tbb')
 
     opt.add_option('--create', type='string',
                    help='create a new exp', dest='create_exp')
@@ -61,12 +62,14 @@ def configure(conf):
     conf.load('boost')
     conf.load('eigen')
     conf.load('libcmaes')
+    conf.load('tbb')
 
     conf.check(lib='pthread')
     conf.check_boost(
         lib='regex system filesystem unit_test_framework', min_version='1.46')
     conf.check_eigen(required=True)
     conf.check_libcmaes()
+    conf.check_tbb(required=True)
 
     native_flags = "-march=native"
 
@@ -95,7 +98,7 @@ def configure(conf):
 
     conf.env.INCLUDES_AEGEAN = os.path.dirname(os.path.abspath(
         inspect.getfile(inspect.currentframe()))) + "/src"
-    conf.env.LIBRARIES = 'BOOST EIGEN LIBCMAES'
+    conf.env.LIBRARIES = 'BOOST EIGEN LIBCMAES TBB'
 
     all_flags = common_flags + opt_flags
     conf.env['CXXFLAGS'] = conf.env['CXXFLAGS'] + all_flags.split(' ')

@@ -106,7 +106,7 @@ namespace aegean {
 
             std::string _fname(const std::string& f) const
             {
-                return _dir_name + "/" + f + ".dat";
+                return _dir_name + "/" + f + ".txt";
             }
 
             const bool _create_dir;

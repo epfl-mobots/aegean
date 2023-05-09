@@ -94,13 +94,12 @@ namespace aegean {
                 Eigen::MatrixXd bins = Eigen::MatrixXd::Zero(1, _num_bins);
                 // assume each column is a different dataset that needs to be
                 // assigned to the same bins
-                for (uint col = 0; col < data.cols(); ++col) {
-                    for (int bin = 0; bin < _num_bins; ++bin) {
-                        double lb = _lbound + _bin_size * bin;
-                        double ub = lb + _bin_size;
-                        int num_le_lb = (data.col(col).array() < lb).count();
-                        int num_le_ub = (data.col(col).array() <= ub).count();
-                        bins(bin) += abs(num_le_lb - num_le_ub);
+                for (size_t col = 0; col < data.cols(); ++col) {
+                    for (size_t row = 0; row < data.rows(); ++row) {
+                        int bin_index = static_cast<int>((data(row, col) - _lbound) / _bin_size);
+                        if (bin_index >= 0 && bin_index < bins.size()) {
+                            bins(bin_index) += 1.0;
+                        }
                     }
                 }
                 _hist = bins;

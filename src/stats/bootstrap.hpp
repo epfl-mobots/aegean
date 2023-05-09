@@ -48,6 +48,7 @@ namespace aegean {
                     _num_threads = oneapi::tbb::info::default_concurrency();
                 }
                 oneapi::tbb::task_arena arena(_num_threads);
+                std::cout << "Starting a TBB arean with " << _num_threads << " threads" << std::endl;
                 arena.execute([&] {
                     tbb::parallel_for(
                         tbb::blocked_range<int>(0, _M),

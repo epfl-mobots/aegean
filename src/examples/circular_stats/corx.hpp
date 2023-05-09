@@ -14,14 +14,10 @@ using namespace aegean::histogram;
 template <typename RetType>
 class Corx : public Stat<Eigen::MatrixXd, PartialExpData, RetType> {
 public:
-    Corx(const PartialExpData& data, float ntcor, float tcor, float timestep, float hist_lb, float hist_ub, float hist_bin_size)
+    Corx(const PartialExpData& data, float ntcor, float tcor, float timestep)
         : _ntcor(ntcor),
           _tcor(tcor),
-          _timestep(timestep),
-          _hist_lb(hist_lb),
-          _hist_ub(hist_ub),
-          _hist_bin_size(hist_bin_size),
-          _h({hist_lb, hist_ub}, hist_bin_size)
+          _timestep(timestep)
     {
         this->_type = "corx";
     }
@@ -29,16 +25,7 @@ public:
     void operator()(const PartialExpData& data, std::shared_ptr<RetType> ret, std::vector<size_t> idcs, const size_t boot_iter) override
     {
         // reserve memory in the beginning
-        size_t mat_size = 0;
-        size_t num_inds = 0;
-        for (size_t i : idcs) {
-            std::vector<Eigen::MatrixXd> segments = std::get<0>(data.at(i));
-            for (Eigen::MatrixXd p : segments) {
-                mat_size += p.rows();
-                num_inds = p.cols() / 2;
-            }
-        }
-
+        size_t num_inds = std::get<0>(data.at(idcs[0]))[0].cols() / 2;
         assert(num_inds == 2 && "This metric is only implemented for 2 individuals");
 
         // correlation vars
@@ -64,25 +51,26 @@ public:
             } // for same exp but different segments
         } // for different exp idcs
 
-        avg = (ind0 + ind1).array() / (2 * num_data).array();
-        ind0 = ind0.array() / num_data.array();
-        ind1 = ind1.array() / num_data.array();
+        avg = ind0 + ind1;
+        // avg = (ind0 + ind1).array() / (2 * num_data).array();
+        // ind0 = ind0.array() / num_data.array();
+        // ind1 = ind1.array() / num_data.array();
         std::vector<Eigen::VectorXd> inds = {std::move(ind0), std::move(ind1)};
 
         { // avg
-            Eigen::MatrixXd hist = _h(avg);
             (*ret)[this->_type]["avg"]["means"](boot_iter, 0) = avg.array().mean();
             (*ret)[this->_type]["avg"]["means2"](boot_iter, 0) = std::pow(avg.array().mean(), 2.);
-            (*ret)[this->_type]["avg"]["N"].row(boot_iter).block(0, 0, 1, hist.cols()) = hist.row(0);
+            (*ret)[this->_type]["avg"]["cor"].row(boot_iter) = avg;
+            (*ret)[this->_type]["avg"]["num_data"].row(boot_iter) = 2 * num_data;
             (*ret)[this->_type]["avg"]["msamples"](boot_iter) = avg.size();
         }
 
         for (size_t ind = 0; ind < num_inds; ++ind) {
             const std::string key = "ind" + std::to_string(ind);
-            Eigen::MatrixXd hist = _h(inds[ind]);
             (*ret)[this->_type][key]["means"](boot_iter, 0) = inds[ind].array().mean();
             (*ret)[this->_type][key]["means2"](boot_iter, 0) = std::pow(inds[ind].array().mean(), 2.);
-            (*ret)[this->_type][key]["N"].row(boot_iter).block(0, 0, 1, hist.cols()) = hist.row(0);
+            (*ret)[this->_type][key]["cor"].row(boot_iter) = inds[ind];
+            (*ret)[this->_type][key]["num_data"].row(boot_iter) = num_data;
         }
     }
 
@@ -120,12 +108,6 @@ protected:
     float _ntcor;
     float _tcor;
     float _timestep;
-
-    float _hist_lb;
-    float _hist_ub;
-    float _hist_bin_size;
-
-    Histogram _h;
 };
 
 #endif

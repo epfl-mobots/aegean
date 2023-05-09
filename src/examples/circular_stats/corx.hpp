@@ -46,14 +46,11 @@ public:
         size_t ntcorsup = _tcor / dtcor;
 
         // store dists for all experiments in fictitious set
-        Eigen::MatrixXd pos(mat_size, num_inds * 2);
-
         Eigen::VectorXd ind0 = Eigen::VectorXd::Zero(ntcorsup);
         Eigen::VectorXd ind1 = Eigen::VectorXd::Zero(ntcorsup);
         Eigen::VectorXd avg = Eigen::VectorXd::Zero(ntcorsup);
         Eigen::VectorXd num_data = Eigen::VectorXd::Zero(ntcorsup);
 
-        size_t start_row_idx = 0;
         for (size_t i : idcs) {
             std::vector<Eigen::MatrixXd> psegments = std::get<0>(data.at(i));
             for (size_t sidx = 0; sidx < psegments.size(); ++sidx) {

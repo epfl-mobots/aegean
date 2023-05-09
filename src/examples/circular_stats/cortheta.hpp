@@ -1,5 +1,5 @@
-#ifndef AEGEAN_EXAMPLES_BOOTSTRAP_STATS_CORV_HPP
-#define AEGEAN_EXAMPLES_BOOTSTRAP_STATS_CORV_HPP
+#ifndef AEGEAN_EXAMPLES_BOOTSTRAP_STATS_CORTHETA_HPP
+#define AEGEAN_EXAMPLES_BOOTSTRAP_STATS_CORTHETA_HPP
 
 #include <tools/find_data.hpp>
 #include <tools/timers.hpp>
@@ -12,9 +12,9 @@ using namespace aegean::stats;
 using namespace aegean::histogram;
 
 template <typename RetType>
-class Corv : public Stat<Eigen::MatrixXd, PartialExpData, RetType> {
+class Cortheta : public Stat<Eigen::MatrixXd, PartialExpData, RetType> {
 public:
-    Corv(const PartialExpData& data, float ntcor, float tcor, float timestep, float hist_lb, float hist_ub, float hist_bin_size)
+    Cortheta(const PartialExpData& data, float ntcor, float tcor, float timestep, float hist_lb, float hist_ub, float hist_bin_size)
         : _ntcor(ntcor),
           _tcor(tcor),
           _timestep(timestep),
@@ -23,7 +23,7 @@ public:
           _hist_bin_size(hist_bin_size),
           _h({hist_lb, hist_ub}, hist_bin_size)
     {
-        this->_type = "corv";
+        this->_type = "cortheta";
     }
 
     void operator()(const PartialExpData& data, std::shared_ptr<RetType> ret, std::vector<size_t> idcs, const size_t boot_iter) override
@@ -52,12 +52,25 @@ public:
         Eigen::VectorXd num_data = Eigen::VectorXd::Zero(ntcorsup);
 
         for (size_t i : idcs) {
-            std::vector<Eigen::MatrixXd> segments = std::get<1>(data.at(i));
-            for (size_t sidx = 0; sidx < segments.size(); ++sidx) {
-                const Eigen::MatrixXd& v = segments[sidx];
+            std::vector<Eigen::MatrixXd> psegments = std::get<0>(data.at(i));
+            std::vector<Eigen::MatrixXd> vsegments = std::get<1>(data.at(i));
+            for (size_t sidx = 0; sidx < psegments.size(); ++sidx) {
+                const Eigen::MatrixXd& p = psegments[sidx];
+                const Eigen::MatrixXd& v = vsegments[sidx];
+
+                // construct angle of incidence mat
+                Eigen::MatrixXd theta(p.rows(), 2);
+                for (size_t ind = 0; ind < num_inds; ++ind) {
+                    // keep separate individual speeds
+                    for (size_t r = 0; r < p.rows(); ++r) {
+                        float hdg = std::atan2(v(r, ind * 2 + 1), v(r, ind * 2 + 1));
+                        theta(r, ind) = angle_to_pipi(
+                            hdg - std::atan2(p(r, ind * 2 + 1), p(r, ind * 2 + 1)));
+                    }
+                }
 
                 Eigen::VectorXd i0c, i1c, nd;
-                std::tie(i0c, i1c, nd) = _compute_correlation(v, dtcor, ntcorsup);
+                std::tie(i0c, i1c, nd) = _compute_correlation(theta, dtcor, ntcorsup);
                 ind0 += i0c;
                 ind1 += i1c;
                 num_data += nd;
@@ -98,14 +111,12 @@ protected:
                 size_t itp = it + itcor * ntcor;
                 if (itp < mat.rows()) {
                     { // ind0
-                        double cor = std::pow(mat(it, 1) - mat(itp, 1), 2.)
-                            + std::pow(mat(it, 0) - mat(itp, 0), 2.);
+                        double cor = std::cos(mat(it, 0) - mat(itp, 0));
                         ind0[itcor] += cor;
                     }
 
                     { // ind1
-                        double cor = std::pow(mat(it, 3) - mat(itp, 3), 2.)
-                            + std::pow(mat(it, 2) - mat(itp, 2), 2.);
+                        double cor = std::cos(mat(it, 1) - mat(itp, 1));
                         ind1[itcor] += cor;
                     }
 

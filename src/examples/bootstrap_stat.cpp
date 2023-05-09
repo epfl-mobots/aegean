@@ -19,6 +19,7 @@
 #include "circular_stats/viewing_angle.hpp"
 #include "circular_stats/corx.hpp"
 #include "circular_stats/corv.hpp"
+#include "circular_stats/cortheta.hpp"
 
 using namespace aegean;
 using namespace aegean::tools;
@@ -100,18 +101,20 @@ int main(int argc, char** argv)
 
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> corx(new Corx<ret_t>(data[TEST_SET], 1, 30, 0.1, 0, 30., 1));
         std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> corv(new Corv<ret_t>(data[TEST_SET], 1, 30, 0.1, 0, 30., 1));
+        std::shared_ptr<Stat<Eigen::MatrixXd, PartialExpData, ret_t>> cortheta(new Cortheta<ret_t>(data[TEST_SET], 1, 30, 0.1, 0, 30., 1));
 
         // add stats to bootstrap
         exp
             //
-            // .add_stat(rvel)
-            // .add_stat(dtw)
-            // .add_stat(thetaw)
-            // .add_stat(idist)
-            // .add_stat(phi)
-            // .add_stat(psi)
-            // .add_stat(corx)
+            .add_stat(rvel)
+            .add_stat(dtw)
+            .add_stat(thetaw)
+            .add_stat(idist)
+            .add_stat(phi)
+            .add_stat(psi)
+            .add_stat(corx)
             .add_stat(corv)
+            .add_stat(cortheta)
             //
             ;
 

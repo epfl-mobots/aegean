@@ -129,19 +129,21 @@ namespace aegean {
                                 std::get<2>(_uni_data[key][exp_num]) = _traj[key][skey].second;
                             }
                             else {
-                                int ridx1 = _traj[key][skey].second;
-                                int ridx0 = std::get<2>(_uni_data[key][viter->second]);
+                                if (_traj[key][skey].first.cols() > 2) {
+                                    int ridx1 = _traj[key][skey].second;
+                                    int ridx0 = std::get<2>(_uni_data[key][viter->second]);
 
-                                // there is a chance that the split experiments will have different robot indices (this is because
-                                // they are indeed analyzed by a different instance of the tracking software). Here, we swap the
-                                // columns to make sure that both experiments that are about to be joined have the same robot index
-                                if (ridx0 != ridx1) {
-                                    _traj[key][skey].first.col(ridx0 * 2).swap(_traj[key][skey].first.col(ridx1 * 2));
-                                    _traj[key][skey].first.col(ridx0 * 2 + 1).swap(_traj[key][skey].first.col(ridx1 * 2 + 1));
-                                    _vels[key][skey].first.col(ridx0 * 2).swap(_vels[key][skey].first.col(ridx1 * 2));
-                                    _vels[key][skey].first.col(ridx0 * 2 + 1).swap(_vels[key][skey].first.col(ridx1 * 2 + 1));
-                                    _traj[key][skey].second = ridx0;
-                                    _vels[key][skey].second = ridx0;
+                                    // there is a chance that the split experiments will have different robot indices (this is because
+                                    // they are indeed analyzed by a different instance of the tracking software). Here, we swap the
+                                    // columns to make sure that both experiments that are about to be joined have the same robot index
+                                    if (ridx0 != ridx1) {
+                                        _traj[key][skey].first.col(ridx0 * 2).swap(_traj[key][skey].first.col(ridx1 * 2));
+                                        _traj[key][skey].first.col(ridx0 * 2 + 1).swap(_traj[key][skey].first.col(ridx1 * 2 + 1));
+                                        _vels[key][skey].first.col(ridx0 * 2).swap(_vels[key][skey].first.col(ridx1 * 2));
+                                        _vels[key][skey].first.col(ridx0 * 2 + 1).swap(_vels[key][skey].first.col(ridx1 * 2 + 1));
+                                        _traj[key][skey].second = ridx0;
+                                        _vels[key][skey].second = ridx0;
+                                    }
                                 }
 
                                 std::get<0>(_uni_data[key][viter->second]).push_back(std::move(_traj[key][skey].first));
